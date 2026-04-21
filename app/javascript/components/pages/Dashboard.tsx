@@ -504,15 +504,44 @@ export default function Dashboard({ worksheetId, _isDemoUser = false }: Props): 
     );
   }
 
-  // データが読み込めない場合のチェック
-  if (
-    error ||
-    (works.length === 0 && members.length === 0 && histories.length === 0 && offWorks.length === 0)
-  ) {
+  // API エラーが発生した場合のチェック
+  if (error) {
     return (
       <div className="text-center py-12 text-gray-600">
         <p>データの読み込みに失敗しました</p>
         <p className="text-sm mt-2">ページをリロードしてください</p>
+      </div>
+    );
+  }
+
+  // データが空の場合（新規ユーザー向けウェルカム画面）
+  const isEmpty = works.length === 0 && members.length === 0;
+  if (isEmpty) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 px-4">
+        <div className="max-w-md text-center">
+          <div className="mb-6 flex justify-center">
+            <SparklesIcon className="h-16 w-16 text-indigo-600" />
+          </div>
+          <h2 className="mb-4 text-2xl font-bold text-gray-800">ようこそ！</h2>
+          <p className="mb-6 text-gray-600">
+            シフト管理を始めるには、まずメンバーとタスクを追加してください。
+          </p>
+          <div className="space-y-3">
+            <a
+              href="/members"
+              className="block rounded-lg bg-indigo-600 px-6 py-3 font-semibold text-white transition-colors hover:bg-indigo-700"
+            >
+              <UserGroupIcon className="mb-1 inline-block h-5 w-5" /> メンバーを追加
+            </a>
+            <a
+              href="/works"
+              className="block rounded-lg border-2 border-indigo-600 px-6 py-3 font-semibold text-indigo-600 transition-colors hover:bg-indigo-50"
+            >
+              <ClipboardDocumentListIcon className="mb-1 inline-block h-5 w-5" /> タスクを追加
+            </a>
+          </div>
+        </div>
       </div>
     );
   }
