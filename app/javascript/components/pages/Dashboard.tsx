@@ -34,6 +34,7 @@ export default function Dashboard({ worksheetId, _isDemoUser = false }: Props): 
   const [offWorks, setOffWorks] = useState<OffWork[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<boolean>(false);
   const [shuffling, setShuffling] = useState<number | 'all' | null>(null);
   const [activeStatsTab, setActiveStatsTab] = useState<StatsTab>('works');
   const [showCalendar, setShowCalendar] = useState<boolean>(false);
@@ -57,6 +58,8 @@ export default function Dashboard({ worksheetId, _isDemoUser = false }: Props): 
         setLoading(false);
         return;
       }
+
+      setError(false);
 
       const year = selectedDate.getFullYear();
       const month = selectedDate.getMonth() + 1;
@@ -83,12 +86,17 @@ export default function Dashboard({ worksheetId, _isDemoUser = false }: Props): 
       const historiesRes = results[2].status === 'fulfilled' ? results[2].value.data : [];
       const offWorksRes = results[3].status === 'fulfilled' ? results[3].value.data : [];
 
+      // エラーが発生したかどうかを確認
+      const hasError = results.some((result) => result.status === 'rejected');
+      setError(hasError);
+
       setWorks(worksRes.sort((a, b) => a.id - b.id));
       setMembers(membersRes);
       setHistories(historiesRes);
       setOffWorks(offWorksRes);
     } catch (error) {
       console.error('Error fetching data:', error);
+      setError(true);
       showNotification('データの読み込みに失敗しました', 'error');
     } finally {
       setLoading(false);
@@ -497,7 +505,10 @@ export default function Dashboard({ worksheetId, _isDemoUser = false }: Props): 
   }
 
   // データが読み込めない場合のチェック
-  if (works.length === 0 && members.length === 0 && histories.length === 0) {
+  if (
+    error ||
+    (works.length === 0 && members.length === 0 && histories.length === 0 && offWorks.length === 0)
+  ) {
     return (
       <div className="text-center py-12 text-gray-600">
         <p>データの読み込みに失敗しました</p>
