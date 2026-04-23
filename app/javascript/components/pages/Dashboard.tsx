@@ -655,6 +655,7 @@ export default function Dashboard({ worksheetId, _isDemoUser = false }: Props): 
                     }}
                     locale="ja-JP"
                     showNeighboringMonth={true}
+                    showFixedNumberOfWeeks={false}
                     className="react-calendar-custom"
                   />
                 </div>
@@ -1097,6 +1098,20 @@ export default function Dashboard({ worksheetId, _isDemoUser = false }: Props): 
           font-family: inherit;
         }
 
+        /* 月ビューのメイン */
+        .react-calendar-custom .react-calendar__month-view {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 1px;
+        }
+
+        /* 週ごとのコンテナ */
+        .react-calendar-custom .react-calendar__month-view__days__week {
+          display: grid;
+          grid-template-columns: repeat(7, 1fr);
+          gap: 1px;
+        }
+
         /* 曜日ヘッダーを flexbox で日曜日から始める */
         .react-calendar-custom .react-calendar__month-view__weekdays {
           display: flex;
@@ -1146,9 +1161,16 @@ export default function Dashboard({ worksheetId, _isDemoUser = false }: Props): 
 
         /* 日付セルのグリッドレイアウト（7列固定） */
         .react-calendar-custom .react-calendar__month-view__days {
-          display: grid;
-          grid-template-columns: repeat(7, 1fr);
-          gap: 1px;
+          display: grid !important;
+          grid-template-columns: repeat(7, 1fr) !important;
+          gap: 1px !important;
+          width: 100%;
+          grid-auto-flow: row;
+        }
+
+        /* 週ごとのコンテナは非表示にして、tile を直接グリッドに配置 */
+        .react-calendar-custom .react-calendar__month-view__days > * {
+          display: contents;
         }
 
         /* 日付タイルのスタイル */
