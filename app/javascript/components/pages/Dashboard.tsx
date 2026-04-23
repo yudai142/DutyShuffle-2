@@ -653,7 +653,7 @@ export default function Dashboard({ worksheetId, _isDemoUser = false }: Props): 
                         setShowCalendar(false);
                       }
                     }}
-                    locale="ja-JP"
+                    locale="en-US"
                     showNeighboringMonth={true}
                     showFixedNumberOfWeeks={false}
                     className="react-calendar-custom"
@@ -1157,6 +1157,45 @@ export default function Dashboard({ worksheetId, _isDemoUser = false }: Props): 
           color: #2563eb;
           border-color: #93c5fd;
           background-color: #eff6ff;
+        }
+
+        /* 曜日テキストを非表示にして日本語に置き換え */
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday {
+          font-size: 0;
+        }
+
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday::before {
+          font-size: 12px;
+        }
+
+        /* en-US locale に基づく曜日マッピング */
+        /* nth-child(1)=日曜日 (Sunday) */
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(1)::before {
+          content: '日';
+        }
+        /* nth-child(2)=月曜日 (Monday) */
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(2)::before {
+          content: '月';
+        }
+        /* nth-child(3)=火曜日 (Tuesday) */
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(3)::before {
+          content: '火';
+        }
+        /* nth-child(4)=水曜日 (Wednesday) */
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(4)::before {
+          content: '水';
+        }
+        /* nth-child(5)=木曜日 (Thursday) */
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(5)::before {
+          content: '木';
+        }
+        /* nth-child(6)=金曜日 (Friday) */
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(6)::before {
+          content: '金';
+        }
+        /* nth-child(7)=土曜日 (Saturday) */
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(7)::before {
+          content: '土';
         }
 
         /* 日付セルのグリッドレイアウト（7列固定） */
