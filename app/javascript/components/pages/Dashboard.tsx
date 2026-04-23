@@ -654,6 +654,7 @@ export default function Dashboard({ worksheetId, _isDemoUser = false }: Props): 
                       }
                     }}
                     locale="ja-JP"
+                    showNeighboringMonth={true}
                     className="react-calendar-custom"
                   />
                 </div>
@@ -1096,38 +1097,54 @@ export default function Dashboard({ worksheetId, _isDemoUser = false }: Props): 
           font-family: inherit;
         }
 
-        /* 曜日ヘッダーを枠で囲む */
+        /* 曜日ヘッダーを flexbox で日曜日から始める */
         .react-calendar-custom .react-calendar__month-view__weekdays {
-          display: grid;
-          grid-template-columns: repeat(7, 1fr);
+          display: flex;
           gap: 1px;
         }
 
         .react-calendar-custom .react-calendar__month-view__weekdays__weekday {
+          flex: 1;
           border: 1px solid #e5e7eb;
           padding: 8px 4px;
           font-weight: 600;
           text-align: center;
           font-size: 12px;
           background-color: #f9fafb;
+          color: #1f2937;
         }
 
-        /* 曜日の色分け */
-        /* 日曜日（1列目）を赤色 */
-        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(1) {
+        /* 曜日の順序を変更（日曜日を最初に） */
+        /* 月(0) → 位置2, 火(1) → 位置3, ..., 土(5) → 位置7, 日(6) → 位置1 */
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(7) {
+          order: 1;
           color: #dc2626;
           border-color: #fca5a5;
           background-color: #fef2f2;
         }
-
-        /* 土曜日（7列目）を青色 */
-        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(7) {
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(1) {
+          order: 2;
+        }
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(2) {
+          order: 3;
+        }
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(3) {
+          order: 4;
+        }
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(4) {
+          order: 5;
+        }
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(5) {
+          order: 6;
+        }
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(6) {
+          order: 7;
           color: #2563eb;
           border-color: #93c5fd;
           background-color: #eff6ff;
         }
 
-        /* 日付セルのグリッドレイアウト */
+        /* 日付セルのグリッドレイアウト（7列固定） */
         .react-calendar-custom .react-calendar__month-view__days {
           display: grid;
           grid-template-columns: repeat(7, 1fr);
@@ -1152,27 +1169,35 @@ export default function Dashboard({ worksheetId, _isDemoUser = false }: Props): 
           background-color: #e0e7ff;
         }
 
-        /* 日曜日の日付（7n の位置に該当、但し最初は曜日ヘッダーなので調整が必要）*/
-        /* react-calendar の DOM 構造：weekday*(7) + days*(各週7個) */
-        /* 最初の7つがweekday、その後がdays */
-        /* 日付の日曜日は、weekday の後、7n+1 位置 */
+        /* 隣接月の日付（淡い表示） */
+        .react-calendar-custom .react-calendar__tile--neighboringMonth {
+          color: #d1d5db;
+          background-color: #f9fafb;
+        }
+
+        /* 日曜日の日付（先頭から7個ごと）の色分け */
+        /* react-calendar が月曜日から始まる場合：6, 13, 20, ... → 7n+1に変換 */
+        /* react-calendar が日曜日から始まる場合は：0, 7, 14, ... → 7n */
+        /* showNeighboringMonth=true の場合、最初の週は前月の日付も含まれるため調整が必要 */
         .react-calendar-custom .react-calendar__month-view__days .react-calendar__tile:nth-child(7n+1) {
           color: #dc2626;
         }
+        .react-calendar-custom .react-calendar__month-view__days .react-calendar__tile--neighboringMonth:nth-child(7n+1) {
+          color: #fca5a5;
+        }
 
-        /* 土曜日の日付は 7n 位置 */
+        /* 土曜日の日付（7の倍数）の色分け */
         .react-calendar-custom .react-calendar__month-view__days .react-calendar__tile:nth-child(7n) {
           color: #2563eb;
+        }
+        .react-calendar-custom .react-calendar__month-view__days .react-calendar__tile--neighboringMonth:nth-child(7n) {
+          color: #93c5fd;
         }
 
         /* アクティブな日付のスタイル */
         .react-calendar-custom .react-calendar__tile--active {
           background-color: #e0e7ff;
           border-color: #6366f1;
-        }
-
-        /* その他の曜日（月〜金）のスタイル */
-        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(n+2):nth-child(-n+6) {
           color: #1f2937;
         }
       `}</style>
