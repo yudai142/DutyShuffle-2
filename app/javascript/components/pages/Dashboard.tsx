@@ -1130,29 +1130,29 @@ export default function Dashboard({ worksheetId, _isDemoUser = false }: Props): 
         }
 
         /* 曜日の順序を変更（日曜日を最初に） */
-        /* 月(0) → 位置2, 火(1) → 位置3, ..., 土(5) → 位置7, 日(6) → 位置1 */
-        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(7) {
+        /* en-US locale では nth-child(1)=Sunday, nth-child(7)=Saturday */
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(1) {
           order: 1;
           color: #dc2626;
           border-color: #fca5a5;
           background-color: #fef2f2;
         }
-        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(1) {
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(2) {
           order: 2;
         }
-        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(2) {
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(3) {
           order: 3;
         }
-        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(3) {
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(4) {
           order: 4;
         }
-        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(4) {
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(5) {
           order: 5;
         }
-        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(5) {
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(6) {
           order: 6;
         }
-        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(6) {
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(7) {
           order: 7;
           color: #2563eb;
           border-color: #93c5fd;
