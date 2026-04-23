@@ -1089,6 +1089,93 @@ export default function Dashboard({ worksheetId, _isDemoUser = false }: Props): 
           )}
         </div>
       )}
+      <style>{`
+        /* react-calendar カレンダーのカスタムスタイル */
+        .react-calendar-custom {
+          width: 100%;
+          font-family: inherit;
+        }
+
+        /* 曜日ヘッダーを枠で囲む */
+        .react-calendar-custom .react-calendar__month-view__weekdays {
+          display: grid;
+          grid-template-columns: repeat(7, 1fr);
+          gap: 1px;
+        }
+
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday {
+          border: 1px solid #e5e7eb;
+          padding: 8px 4px;
+          font-weight: 600;
+          text-align: center;
+          font-size: 12px;
+          background-color: #f9fafb;
+        }
+
+        /* 曜日の色分け */
+        /* 日曜日（1列目）を赤色 */
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(1) {
+          color: #dc2626;
+          border-color: #fca5a5;
+          background-color: #fef2f2;
+        }
+
+        /* 土曜日（7列目）を青色 */
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(7) {
+          color: #2563eb;
+          border-color: #93c5fd;
+          background-color: #eff6ff;
+        }
+
+        /* 日付セルのグリッドレイアウト */
+        .react-calendar-custom .react-calendar__month-view__days {
+          display: grid;
+          grid-template-columns: repeat(7, 1fr);
+          gap: 1px;
+        }
+
+        /* 日付タイルのスタイル */
+        .react-calendar-custom .react-calendar__tile {
+          border: 1px solid #e5e7eb;
+          padding: 8px;
+          aspect-ratio: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 14px;
+          background-color: #ffffff;
+          cursor: pointer;
+          transition: background-color 0.2s, color 0.2s;
+        }
+
+        .react-calendar-custom .react-calendar__tile:hover {
+          background-color: #e0e7ff;
+        }
+
+        /* 日曜日の日付（7n の位置に該当、但し最初は曜日ヘッダーなので調整が必要）*/
+        /* react-calendar の DOM 構造：weekday*(7) + days*(各週7個) */
+        /* 最初の7つがweekday、その後がdays */
+        /* 日付の日曜日は、weekday の後、7n+1 位置 */
+        .react-calendar-custom .react-calendar__month-view__days .react-calendar__tile:nth-child(7n+1) {
+          color: #dc2626;
+        }
+
+        /* 土曜日の日付は 7n 位置 */
+        .react-calendar-custom .react-calendar__month-view__days .react-calendar__tile:nth-child(7n) {
+          color: #2563eb;
+        }
+
+        /* アクティブな日付のスタイル */
+        .react-calendar-custom .react-calendar__tile--active {
+          background-color: #e0e7ff;
+          border-color: #6366f1;
+        }
+
+        /* その他の曜日（月〜金）のスタイル */
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(n+2):nth-child(-n+6) {
+          color: #1f2937;
+        }
+      `}</style>
     </div>
   );
 }
