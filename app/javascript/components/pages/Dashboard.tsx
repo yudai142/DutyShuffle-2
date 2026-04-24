@@ -657,6 +657,15 @@ export default function Dashboard({ worksheetId, _isDemoUser = false }: Props): 
                     showNeighboringMonth={true}
                     showFixedNumberOfWeeks={false}
                     className="react-calendar-custom"
+                    formatMonthYear={(locale, date) => {
+                      return `${date.getFullYear()}年 ${date.getMonth() + 1}月`;
+                    }}
+                    formatMonth={(locale, date) => {
+                      return `${date.getMonth() + 1}月`;
+                    }}
+                    formatYear={(locale, date) => {
+                      return `${date.getFullYear()}年`;
+                    }}
                   />
                 </div>
               </>
@@ -1260,6 +1269,45 @@ export default function Dashboard({ worksheetId, _isDemoUser = false }: Props): 
           background-color: #e0e7ff;
           border-color: #6366f1;
           color: #1f2937;
+        }
+
+        /* 年・月選択ビューをリスト表示に変更 */
+        .react-calendar-custom .react-calendar__year-view,
+        .react-calendar-custom .react-calendar__decade-view {
+          display: flex;
+          flex-direction: column;
+          gap: 0;
+        }
+
+        .react-calendar-custom .react-calendar__year-view__months,
+        .react-calendar-custom .react-calendar__decade-view__years {
+          display: flex;
+          flex-direction: column;
+          gap: 0;
+        }
+
+        .react-calendar-custom .react-calendar__year-view__months__month,
+        .react-calendar-custom .react-calendar__decade-view__years__year {
+          padding: 12px;
+          border: 1px solid #e5e7eb;
+          text-align: center;
+          font-size: 14px;
+          background-color: #ffffff;
+          cursor: pointer;
+          transition: background-color 0.2s, color 0.2s;
+        }
+
+        .react-calendar-custom .react-calendar__year-view__months__month:hover,
+        .react-calendar-custom .react-calendar__decade-view__years__year:hover {
+          background-color: #e0e7ff;
+          color: #4f46e5;
+        }
+
+        .react-calendar-custom .react-calendar__year-view__months__month--active,
+        .react-calendar-custom .react-calendar__decade-view__years__year--active {
+          background-color: #4f46e5;
+          color: #ffffff;
+          border-color: #4f46e5;
         }
       `}</style>
     </div>
