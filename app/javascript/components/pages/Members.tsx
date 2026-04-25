@@ -9,7 +9,6 @@ interface BulkFormData {
 
 interface EditFormData {
   name: string;
-  kana: string;
   archive: boolean;
 }
 
@@ -23,213 +22,6 @@ interface Props {
   isDemoUser?: boolean;
 }
 
-// ひらがな予測関数（ひらがナ返却用）
-const predictKanaHiragana = (name: string): string => {
-  // ひらがなが含まれていたら、そのままひらがなを返す
-  if (/[ぁ-ん]/.test(name)) {
-    return name;
-  }
-
-  // カタカナからひらがなに変換するマップ
-  const katakanaHiraganaMap: { [key: string]: string } = {
-    ア: 'あ',
-    イ: 'い',
-    ウ: 'う',
-    エ: 'え',
-    オ: 'お',
-    カ: 'か',
-    キ: 'き',
-    ク: 'く',
-    ケ: 'け',
-    コ: 'こ',
-    ガ: 'が',
-    ギ: 'ぎ',
-    グ: 'ぐ',
-    ゲ: 'げ',
-    ゴ: 'ご',
-    サ: 'さ',
-    シ: 'し',
-    ス: 'す',
-    セ: 'せ',
-    ソ: 'そ',
-    ザ: 'ざ',
-    ジ: 'じ',
-    ズ: 'ず',
-    ゼ: 'ぜ',
-    ゾ: 'ぞ',
-    タ: 'た',
-    チ: 'ち',
-    ツ: 'つ',
-    テ: 'て',
-    ト: 'と',
-    ダ: 'だ',
-    ヂ: 'ぢ',
-    ヅ: 'づ',
-    デ: 'で',
-    ド: 'ど',
-    ナ: 'な',
-    ニ: 'に',
-    ヌ: 'ぬ',
-    ネ: 'ね',
-    ノ: 'の',
-    ハ: 'は',
-    ヒ: 'ひ',
-    フ: 'ふ',
-    ヘ: 'へ',
-    ホ: 'ほ',
-    バ: 'ば',
-    ビ: 'び',
-    ブ: 'ぶ',
-    ベ: 'べ',
-    ボ: 'ぼ',
-    パ: 'ぱ',
-    ピ: 'ぴ',
-    プ: 'ぷ',
-    ペ: 'ぺ',
-    ポ: 'ぽ',
-    マ: 'ま',
-    ミ: 'み',
-    ム: 'む',
-    メ: 'め',
-    モ: 'も',
-    ヤ: 'や',
-    ユ: 'ゆ',
-    ヨ: 'よ',
-    ラ: 'ら',
-    リ: 'り',
-    ル: 'る',
-    レ: 'れ',
-    ロ: 'ろ',
-    ワ: 'わ',
-    ヰ: 'ゐ',
-    ヱ: 'ゑ',
-    ヲ: 'を',
-    ン: 'ん',
-    ー: 'ー',
-    ' ': ' ',
-  };
-
-  const commonNameMapHiragana: { [key: string]: string } = {
-    山田: 'やまだ',
-    佐藤: 'さとう',
-    鈴木: 'すずき',
-    伊藤: 'いとう',
-    高橋: 'たかはし',
-    渡辺: 'わたなべ',
-    中村: 'なかむら',
-    小林: 'こばやし',
-    田中: 'たなか',
-    太郎: 'たろう',
-    次郎: 'じろう',
-    花子: 'はなこ',
-  };
-
-  // 漢字を読み方に変換するマップ（複合漢字）
-  const kanjiToKanaMap: { [key: string]: string[] } = {
-    山: ['やま'],
-    田: ['た', 'だ'],
-    市: ['し'],
-    早: ['さ'],
-    苗: ['なえ'],
-    木: ['き'],
-    林: ['りん'],
-    橋: ['はし'],
-    渡: ['わた'],
-    辺: ['べ'],
-    中: ['なか'],
-    村: ['むら'],
-    小: ['こ'],
-    高: ['たか'],
-    佐: ['さ'],
-    藤: ['とう'],
-    鈴: ['すず'],
-    伊: ['い'],
-    河: ['かわ'],
-    川: ['かわ'],
-    本: ['もと'],
-    井: ['い'],
-    松: ['まつ'],
-    竹: ['たけ'],
-    梅: ['うめ'],
-    南: ['みなみ'],
-    北: ['きた'],
-    東: ['ひがし'],
-    西: ['にし'],
-    春: ['はる'],
-    夏: ['なつ'],
-    秋: ['あき'],
-    冬: ['ふゆ'],
-    花: ['はな'],
-    雪: ['ゆき'],
-    月: ['つき'],
-    星: ['ほし'],
-    海: ['うみ'],
-    森: ['もり'],
-    石: ['いし'],
-    火: ['ひ'],
-    水: ['みず'],
-    土: ['つち'],
-    金: ['かね'],
-    白: ['しろ'],
-    黒: ['くろ'],
-    赤: ['あか'],
-    平: ['たいら'],
-    正: ['ただ'],
-    昭: ['あきら'],
-    康: ['やす'],
-    子: ['こ'],
-    男: ['お'],
-    女: ['め'],
-    郎: ['ろう'],
-    夫: ['お'],
-    吉: ['よし'],
-    助: ['すけ'],
-    三: ['み'],
-    二: ['に'],
-    一: ['いち'],
-  };
-
-  // カタカナをひらがなに変換
-  if (/[ァ-ン]/.test(name)) {
-    return name
-      .split('')
-      .map((char) => katakanaHiraganaMap[char] || char)
-      .join('');
-  }
-
-  // 漢字の辞書マップで対応するひらがなに変換
-  for (const [kanji, kana] of Object.entries(commonNameMapHiragana)) {
-    if (name.includes(kanji)) {
-      return name.split(kanji).join(kana);
-    }
-  }
-
-  // 個別漢字マップで変換を試みる
-  if (/[\u4e00-\u9fff]/.test(name)) {
-    const converted = name
-      .split('')
-      .map((char) => {
-        if (kanjiToKanaMap[char]) {
-          // 複数の読み方がある場合は最初のものを使用
-          return kanjiToKanaMap[char][0];
-        }
-        // 漢字以外またはマッピング未登録の文字はそのまま返す
-        return char;
-      })
-      .join('');
-
-    // 変換されている場合は結果を返す、そうでなければ空文字列を返す
-    if (converted && converted !== name) {
-      return converted;
-    }
-
-    // 完全に解析できなかった場合は空文字列を返す
-    return '';
-  }
-
-  return name;
-};
-
 export default function Members({ worksheetId, isDemoUser = false }: Props): JSX.Element {
   const [members, setMembers] = useState<Member[]>([]);
   const [works, setWorks] = useState<Work[]>([]);
@@ -241,12 +33,10 @@ export default function Members({ worksheetId, isDemoUser = false }: Props): JSX
   const [bulkFormData, setBulkFormData] = useState<BulkFormData>({ text: '' });
   const [singleFormData, setSingleFormData] = useState<EditFormData>({
     name: '',
-    kana: '',
     archive: false,
   });
   const [editFormData, setEditFormData] = useState<EditFormData>({
     name: '',
-    kana: '',
     archive: false,
   });
   const [settingForm, setSettingForm] = useState<SettingFormData>({
@@ -361,7 +151,7 @@ export default function Members({ worksheetId, isDemoUser = false }: Props): JSX
         member: singleFormData,
       });
 
-      setSingleFormData({ name: '', kana: '', archive: false });
+      setSingleFormData({ name: '', archive: false });
       setShowSingleForm(false);
       alert('メンバーを登録しました');
       await fetchData();
@@ -370,37 +160,13 @@ export default function Members({ worksheetId, isDemoUser = false }: Props): JSX
     }
   };
 
-  const handleSingleFormKeyDown = (e: React.KeyboardEvent<HTMLInputElement>): void => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-    }
-  };
-
   const handleOpenEditModal = (member: Member): void => {
     setSelectedMember(member);
     setEditFormData({
       name: member.name,
-      kana: member.kana,
       archive: member.archive,
     });
     setSettingForm({ work_id: '', status: '0' });
-  };
-
-  const handleNameChange = (newName: string): void => {
-    setEditFormData((prev) => {
-      const predicted = predictKanaHiragana(newName);
-      return {
-        ...prev,
-        name: newName,
-        kana: predicted,
-      };
-    });
-  };
-
-  const handleEditFormKeyDown = (e: React.KeyboardEvent<HTMLInputElement>): void => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-    }
   };
 
   const handleEditSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
@@ -548,37 +314,10 @@ export default function Members({ worksheetId, isDemoUser = false }: Props): JSX
                 type="text"
                 className="input-field"
                 value={singleFormData.name}
-                onChange={(e) => {
-                  const newName = e.target.value;
-                  setSingleFormData((prev) => {
-                    const predicted = predictKanaHiragana(newName);
-                    return {
-                      ...prev,
-                      name: newName,
-                      kana: predicted,
-                    };
-                  });
-                }}
-                onKeyDown={handleSingleFormKeyDown}
+                onChange={(e) => setSingleFormData({ ...singleFormData, name: e.target.value })}
                 placeholder="例：山田太郎"
                 required
               />
-            </div>
-            <div>
-              <label htmlFor="single-kana" className="block text-sm font-medium text-gray-700">
-                かな
-              </label>
-              <input
-                id="single-kana"
-                type="text"
-                className="input-field"
-                value={singleFormData.kana}
-                onChange={(e) => setSingleFormData({ ...singleFormData, kana: e.target.value })}
-                onKeyDown={handleSingleFormKeyDown}
-                placeholder="例：やまただろう"
-                required
-              />
-              <p className="text-xs text-gray-500 mt-1">※名前を入力するとかなが自動予測されます</p>
             </div>
             <div className="flex gap-3">
               <button type="submit" className="btn-primary flex-1">
@@ -601,7 +340,6 @@ export default function Members({ worksheetId, isDemoUser = false }: Props): JSX
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <h3 className="font-semibold text-gray-900">{member.name}</h3>
-                <p className="text-sm text-gray-500">{member.kana}</p>
               </div>
               <span className="text-xs font-medium text-gray-400">編集</span>
             </div>
@@ -635,27 +373,9 @@ export default function Members({ worksheetId, isDemoUser = false }: Props): JSX
                       type="text"
                       className="input-field"
                       value={editFormData.name}
-                      onChange={(e) => handleNameChange(e.target.value)}
-                      onKeyDown={handleEditFormKeyDown}
+                      onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
                       required
                     />
-                  </div>
-                  <div>
-                    <label htmlFor="edit-kana" className="block text-sm font-medium text-gray-700">
-                      かな
-                    </label>
-                    <input
-                      id="edit-kana"
-                      type="text"
-                      className="input-field"
-                      value={editFormData.kana}
-                      onChange={(e) => setEditFormData({ ...editFormData, kana: e.target.value })}
-                      onKeyDown={handleEditFormKeyDown}
-                      required
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      ※名前を入力するとかなが自動予測されます
-                    </p>
                   </div>
                   <div className="flex items-center gap-3">
                     <input

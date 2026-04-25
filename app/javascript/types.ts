@@ -26,7 +26,6 @@ export interface Worksheet {
 export interface Member {
   id: number;
   name: string;
-  kana: string;
   archive: boolean;
   created_at: string;
   updated_at: string;
