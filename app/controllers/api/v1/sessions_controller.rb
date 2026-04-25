@@ -99,6 +99,7 @@ module Api
       def update_name
         user = User.find_by(id: session[:user_id])
         return render json: { authenticated: false }, status: :unauthorized if user.blank?
+        return render json: { error: 'デモユーザーはユーザー名を変更することはできません' }, status: :forbidden if user.email == 'test@example.com'
 
         if user.update(name: params[:name].to_s.strip)
           render json: {

@@ -40,6 +40,7 @@ interface LayoutProps {
   worksheetNotification: Notification | null;
   onWorksheetNotificationDismiss: () => void;
   isDemoUser?: boolean;
+  onDemoUserNameClick?: () => void;
 }
 
 export default function Layout({
@@ -59,6 +60,7 @@ export default function Layout({
   worksheetNotification,
   onWorksheetNotificationDismiss,
   isDemoUser = false,
+  onDemoUserNameClick,
 }: LayoutProps): JSX.Element {
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
   const [showUserNameModal, setShowUserNameModal] = useState<boolean>(false);
@@ -108,11 +110,15 @@ export default function Layout({
           {sidebarOpen && (
             <button
               onClick={() => {
-                setNewUserName(currentUserName);
-                setShowUserNameModal(true);
+                if (isDemoUser) {
+                  onDemoUserNameClick?.();
+                } else {
+                  setNewUserName(currentUserName);
+                  setShowUserNameModal(true);
+                }
               }}
               className="w-full text-xs text-gray-500 hover:text-primary-600 transition-colors text-center py-1 px-2 rounded hover:bg-primary-50"
-              title="ユーザー名を変更"
+              title={isDemoUser ? 'デモユーザーは変更できません' : 'ユーザー名を変更'}
             >
               {currentUserName}
             </button>

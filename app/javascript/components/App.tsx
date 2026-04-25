@@ -112,6 +112,15 @@ export default function App(): JSX.Element {
   };
 
   const updateUserName = async (newName: string): Promise<void> => {
+    if (isDemoUser()) {
+      setWorksheetNotification({
+        message: 'デモユーザーはユーザー名を変更することはできません',
+        type: 'error',
+      });
+      window.setTimeout(() => setWorksheetNotification(null), 4000);
+      return;
+    }
+
     try {
       const res = await axios.patch<AuthResponse>('/api/v1/auth/update_name', {
         name: newName,
@@ -312,6 +321,13 @@ export default function App(): JSX.Element {
         worksheetNotification={worksheetNotification}
         onWorksheetNotificationDismiss={() => setWorksheetNotification(null)}
         isDemoUser={isDemoUser()}
+        onDemoUserNameClick={() => {
+          setWorksheetNotification({
+            message: 'デモユーザーはユーザー名を変更することはできません',
+            type: 'error',
+          });
+          window.setTimeout(() => setWorksheetNotification(null), 4000);
+        }}
       >
         <Routes>
           <Route path="/password-reset" element={<PasswordResetPage />} />
