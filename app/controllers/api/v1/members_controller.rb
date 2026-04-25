@@ -112,7 +112,7 @@ module Api
       end
 
       def member_params
-        params.require(:member).permit(:name, :kana, :archive)
+        params.require(:member).permit(:name, :archive)
       end
 
       def include_archived?
@@ -127,7 +127,6 @@ module Api
         payload = {
           id: member.id,
           name: member.name,
-          kana: member.kana,
           archive: member.archive,
           created_at: member.created_at,
           updated_at: member.updated_at
