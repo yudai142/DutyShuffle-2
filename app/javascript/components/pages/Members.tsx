@@ -4,7 +4,8 @@ import type { Member, Work, MemberOptionSetting } from '../../types';
 import ImportModal from '../ImportModal';
 
 interface BulkFormData {
-  text: string;
+  names: string;
+  kanas: string;
 }
 
 interface EditFormData {
@@ -124,6 +125,71 @@ const predictKanaHiragana = (name: string): string => {
     花子: 'はなこ',
   };
 
+  // 漢字を読み方に変換するマップ（複合漢字）
+  const kanjiToKanaMap: { [key: string]: string[] } = {
+    山: ['やま'],
+    田: ['た', 'だ'],
+    市: ['し'],
+    早: ['さ'],
+    苗: ['なえ'],
+    木: ['き'],
+    林: ['りん'],
+    橋: ['はし'],
+    渡: ['わた'],
+    辺: ['べ'],
+    中: ['なか'],
+    村: ['むら'],
+    小: ['こ'],
+    高: ['たか'],
+    佐: ['さ'],
+    藤: ['とう'],
+    鈴: ['すず'],
+    伊: ['い'],
+    河: ['かわ'],
+    川: ['かわ'],
+    本: ['もと'],
+    井: ['い'],
+    松: ['まつ'],
+    竹: ['たけ'],
+    梅: ['うめ'],
+    南: ['みなみ'],
+    北: ['きた'],
+    東: ['ひがし'],
+    西: ['にし'],
+    春: ['はる'],
+    夏: ['なつ'],
+    秋: ['あき'],
+    冬: ['ふゆ'],
+    花: ['はな'],
+    雪: ['ゆき'],
+    月: ['つき'],
+    星: ['ほし'],
+    海: ['うみ'],
+    森: ['もり'],
+    石: ['いし'],
+    火: ['ひ'],
+    水: ['みず'],
+    土: ['つち'],
+    金: ['かね'],
+    白: ['しろ'],
+    黒: ['くろ'],
+    赤: ['あか'],
+    平: ['たいら'],
+    正: ['ただ'],
+    昭: ['あきら'],
+    康: ['やす'],
+    子: ['こ'],
+    男: ['お'],
+    女: ['め'],
+    郎: ['ろう'],
+    夫: ['お'],
+    吉: ['よし'],
+    助: ['すけ'],
+    三: ['み'],
+    二: ['に'],
+    一: ['いち'],
+  };
+
   // カタカナをひらがなに変換
   if (/[ァ-ン]/.test(name)) {
     return name
@@ -139,6 +205,29 @@ const predictKanaHiragana = (name: string): string => {
     }
   }
 
+  // 個別漢字マップで変換を試みる
+  if (/[\u4e00-\u9fff]/.test(name)) {
+    const converted = name
+      .split('')
+      .map((char) => {
+        if (kanjiToKanaMap[char]) {
+          // 複数の読み方がある場合は最初のものを使用
+          return kanjiToKanaMap[char][0];
+        }
+        // 漢字以外またはマッピング未登録の文字はそのまま返す
+        return char;
+      })
+      .join('');
+
+    // 変換されている場合は結果を返す、そうでなければ空文字列を返す
+    if (converted && converted !== name) {
+      return converted;
+    }
+
+    // 完全に解析できなかった場合は空文字列を返す
+    return '';
+  }
+
   return name;
 };
 
@@ -150,7 +239,7 @@ export default function Members({ worksheetId, isDemoUser = false }: Props): JSX
   const [showSingleForm, setShowSingleForm] = useState<boolean>(false);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [filter, setFilter] = useState<'active' | 'all' | 'archived'>('active');
-  const [bulkFormData, setBulkFormData] = useState<BulkFormData>({ text: '' });
+  const [bulkFormData, setBulkFormData] = useState<BulkFormData>({ names: '', kanas: '' });
   const [singleFormData, setSingleFormData] = useState<EditFormData>({
     name: '',
     kana: '',
@@ -228,34 +317,51 @@ export default function Members({ worksheetId, isDemoUser = false }: Props): JSX
 
   // Works are not currently used in this component
 
+  const handleBulkNameChange = (newNames: string): void => {
+    setBulkFormData(() => {
+      const nameLines = newNames.split('\n').map((line) => line.trim());
+
+      const autoKanas = nameLines.map((name) => (name ? predictKanaHiragana(name) : '')).join('\n');
+
+      return {
+        names: newNames,
+        kanas: autoKanas,
+      };
+    });
+  };
+
   const handleBulkSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     if (!worksheetId) return;
 
     try {
-      const lines = bulkFormData.text
+      const nameLines = bulkFormData.names
         .split('\n')
-        .filter((line) => line.trim())
-        .map((line) => {
-          const parts = line.trim().split(/\s+/);
-          return {
-            name: parts.slice(0, -1).join(' ') || '',
-            kana: parts[parts.length - 1] || '',
-          };
-        })
-        .filter((member) => member.name && member.kana);
+        .map((line) => line.trim())
+        .filter((line) => line);
+      const kanaLines = bulkFormData.kanas
+        .split('\n')
+        .map((line) => line.trim())
+        .filter((line) => line);
 
-      if (lines.length === 0) {
+      const members = nameLines.map((name, index) => ({
+        name,
+        kana: kanaLines[index] || '',
+      }));
+
+      const validMembers = members.filter((member) => member.name && member.kana);
+
+      if (validMembers.length === 0) {
         alert('有効なメンバーを入力してください');
         return;
       }
 
       await axios.post('/api/v1/members/bulk_create', {
-        members: lines,
+        members: validMembers,
         worksheet_id: worksheetId,
       });
 
-      setBulkFormData({ text: '' });
+      setBulkFormData({ names: '', kanas: '' });
       setShowBulkForm(false);
       alert('メンバーを一括登録しました');
       await fetchData();
@@ -426,20 +532,44 @@ export default function Members({ worksheetId, isDemoUser = false }: Props): JSX
         <div className="card">
           <form onSubmit={handleBulkSubmit} className="space-y-4">
             <div>
-              <label htmlFor="bulk-members" className="block text-sm font-medium text-gray-700">
-                メンバーを一括登録
-              </label>
+              <label className="block text-sm font-medium text-gray-700">メンバーを一括登録</label>
               <p className="text-xs text-gray-500 mb-2">
-                1行に1メンバー「名前 かな」の形式で入力してください
+                左に名前、右にかなを1行に1メンバー入力してください
               </p>
-              <textarea
-                id="bulk-members"
-                className="input-field min-h-[120px] font-mono text-sm"
-                value={bulkFormData.text}
-                onChange={(e) => setBulkFormData({ text: e.target.value })}
-                placeholder="例:&#10;佐藤 太郎 さとう&#10;鈴木 花子 すずき"
-                required
-              />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label
+                    htmlFor="bulk-names"
+                    className="block text-xs font-medium text-gray-700 mb-1"
+                  >
+                    名前
+                  </label>
+                  <textarea
+                    id="bulk-names"
+                    className="input-field min-h-[120px] font-mono text-sm"
+                    value={bulkFormData.names}
+                    onChange={(e) => handleBulkNameChange(e.target.value)}
+                    placeholder={'例:\\n佐藤 太郎\\n鈴木 花子'}
+                    required
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="bulk-kanas"
+                    className="block text-xs font-medium text-gray-700 mb-1"
+                  >
+                    かな
+                  </label>
+                  <textarea
+                    id="bulk-kanas"
+                    className="input-field min-h-[120px] font-mono text-sm"
+                    value={bulkFormData.kanas}
+                    onChange={(e) => setBulkFormData({ ...bulkFormData, kanas: e.target.value })}
+                    placeholder={'例:\\nさとう たろう\\nすずき はなこ'}
+                    required
+                  />
+                </div>
+              </div>
             </div>
             <button type="submit" className="btn-primary w-full">
               一括追加
