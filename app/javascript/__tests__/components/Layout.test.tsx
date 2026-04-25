@@ -36,6 +36,7 @@ describe('Layout - Issue #27: ワークシート選択機能の実装', () => {
     currentUserName: 'テストユーザー',
     currentWorksheetName: 'ワークシート1',
     onLogout: vi.fn(),
+    onUpdateUserName: vi.fn(),
     worksheets: mockWorksheets,
     activeWorksheetId: 1,
     onWorksheetSelect: vi.fn(),
@@ -206,7 +207,7 @@ describe('Layout - Issue #27: ワークシート選択機能の実装', () => {
   });
 
   describe('サイドバー', () => {
-    it('ユーザー名がサイドバーに表示される', () => {
+    it('ユーザー名がサイドバーボタンとして表示される', () => {
       render(
         <Layout {...defaultProps} currentUserName="太郎">
           <div>Test Content</div>
@@ -214,6 +215,61 @@ describe('Layout - Issue #27: ワークシート選択機能の実装', () => {
       );
 
       expect(screen.getByText('太郎')).toBeInTheDocument();
+    });
+
+    it('ユーザー名ボタンをクリックするとモーダルが表示される', async () => {
+      const user = userEvent.setup();
+      render(
+        <Layout {...defaultProps} currentUserName="太郎">
+          <div>Test Content</div>
+        </Layout>
+      );
+
+      const userNameButton = screen.getByRole('button', { name: '太郎' });
+      await user.click(userNameButton);
+
+      expect(screen.getByPlaceholderText('ユーザー名')).toBeInTheDocument();
+      expect(screen.getByDisplayValue('太郎')).toBeInTheDocument();
+    });
+
+    it('モーダルでユーザー名を変更して保存できる', async () => {
+      const user = userEvent.setup();
+      const mockUpdateUserName = vi.fn().mockResolvedValue(undefined);
+
+      render(
+        <Layout {...defaultProps} currentUserName="太郎" onUpdateUserName={mockUpdateUserName}>
+          <div>Test Content</div>
+        </Layout>
+      );
+
+      const userNameButton = screen.getByRole('button', { name: '太郎' });
+      await user.click(userNameButton);
+
+      const input = screen.getByDisplayValue('太郎');
+      await user.clear(input);
+      await user.type(input, '花子');
+
+      const saveButton = screen.getByRole('button', { name: '保存' });
+      await user.click(saveButton);
+
+      expect(mockUpdateUserName).toHaveBeenCalledWith('花子');
+    });
+
+    it('モーダルのキャンセルボタンでモーダルが閉じる', async () => {
+      const user = userEvent.setup();
+      render(
+        <Layout {...defaultProps} currentUserName="太郎">
+          <div>Test Content</div>
+        </Layout>
+      );
+
+      const userNameButton = screen.getByRole('button', { name: '太郎' });
+      await user.click(userNameButton);
+
+      const cancelButton = screen.getAllByRole('button', { name: 'キャンセル' })[0];
+      await user.click(cancelButton);
+
+      expect(screen.queryByPlaceholderText('ユーザー名')).not.toBeInTheDocument();
     });
   });
 });

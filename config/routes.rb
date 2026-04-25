@@ -21,6 +21,7 @@ Rails.application.routes.draw do
         post :logout, to: 'sessions#logout'
         post :register, to: 'sessions#register'
         patch :switch_worksheet, to: 'sessions#switch_worksheet'
+        patch :update_name, to: 'sessions#update_name'
         post 'password/validate_token', to: 'passwords#validate_token'
         post 'password/forgot', to: 'passwords#forgot'
         post 'password/reset', to: 'passwords#reset'
