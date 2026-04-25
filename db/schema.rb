@@ -10,7 +10,7 @@
 #
 # It's strongly recommended that you check this file into your version control system.
 
-ActiveRecord::Schema[7.1].define(version: 2026_04_10_000001) do
+ActiveRecord::Schema[7.1].define(version: 2026_04_26_000001) do
   # These are extensions that must be enabled in order to support this database
   enable_extension "plpgsql"
 
@@ -48,7 +48,6 @@ ActiveRecord::Schema[7.1].define(version: 2026_04_10_000001) do
     t.datetime "updated_at", null: false
     t.bigint "worksheet_id"
     t.string "name", null: false
-    t.string "kana", null: false
     t.index ["archive"], name: "index_members_on_archive"
     t.index ["worksheet_id"], name: "index_members_on_worksheet_id"
   end
