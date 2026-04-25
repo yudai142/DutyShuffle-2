@@ -4,8 +4,7 @@ import type { Member, Work, MemberOptionSetting } from '../../types';
 import ImportModal from '../ImportModal';
 
 interface BulkFormData {
-  names: string;
-  kanas: string;
+  text: string;
 }
 
 interface EditFormData {
@@ -239,7 +238,7 @@ export default function Members({ worksheetId, isDemoUser = false }: Props): JSX
   const [showSingleForm, setShowSingleForm] = useState<boolean>(false);
   const [selectedMember, setSelectedMember] = useState<Member | null>(null);
   const [filter, setFilter] = useState<'active' | 'all' | 'archived'>('active');
-  const [bulkFormData, setBulkFormData] = useState<BulkFormData>({ names: '', kanas: '' });
+  const [bulkFormData, setBulkFormData] = useState<BulkFormData>({ text: '' });
   const [singleFormData, setSingleFormData] = useState<EditFormData>({
     name: '',
     kana: '',
@@ -317,51 +316,34 @@ export default function Members({ worksheetId, isDemoUser = false }: Props): JSX
 
   // Works are not currently used in this component
 
-  const handleBulkNameChange = (newNames: string): void => {
-    setBulkFormData(() => {
-      const nameLines = newNames.split('\n').map((line) => line.trim());
-
-      const autoKanas = nameLines.map((name) => (name ? predictKanaHiragana(name) : '')).join('\n');
-
-      return {
-        names: newNames,
-        kanas: autoKanas,
-      };
-    });
-  };
-
   const handleBulkSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
     e.preventDefault();
     if (!worksheetId) return;
 
     try {
-      const nameLines = bulkFormData.names
+      const lines = bulkFormData.text
         .split('\n')
-        .map((line) => line.trim())
-        .filter((line) => line);
-      const kanaLines = bulkFormData.kanas
-        .split('\n')
-        .map((line) => line.trim())
-        .filter((line) => line);
+        .filter((line) => line.trim())
+        .map((line) => {
+          const parts = line.trim().split(/\s+/);
+          return {
+            name: parts.slice(0, -1).join(' ') || '',
+            kana: parts[parts.length - 1] || '',
+          };
+        })
+        .filter((member) => member.name && member.kana);
 
-      const members = nameLines.map((name, index) => ({
-        name,
-        kana: kanaLines[index] || '',
-      }));
-
-      const validMembers = members.filter((member) => member.name && member.kana);
-
-      if (validMembers.length === 0) {
+      if (lines.length === 0) {
         alert('有効なメンバーを入力してください');
         return;
       }
 
       await axios.post('/api/v1/members/bulk_create', {
-        members: validMembers,
+        members: lines,
         worksheet_id: worksheetId,
       });
 
-      setBulkFormData({ names: '', kanas: '' });
+      setBulkFormData({ text: '' });
       setShowBulkForm(false);
       alert('メンバーを一括登録しました');
       await fetchData();
@@ -532,44 +514,20 @@ export default function Members({ worksheetId, isDemoUser = false }: Props): JSX
         <div className="card">
           <form onSubmit={handleBulkSubmit} className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">メンバーを一括登録</label>
+              <label htmlFor="bulk-members" className="block text-sm font-medium text-gray-700">
+                メンバーを一括登録
+              </label>
               <p className="text-xs text-gray-500 mb-2">
-                左に名前、右にかなを1行に1メンバー入力してください
+                1行に1メンバー「名前 かな」の形式で入力してください
               </p>
-              <div className="grid grid-cols-2 gap-4">
-                <div>
-                  <label
-                    htmlFor="bulk-names"
-                    className="block text-xs font-medium text-gray-700 mb-1"
-                  >
-                    名前
-                  </label>
-                  <textarea
-                    id="bulk-names"
-                    className="input-field min-h-[120px] font-mono text-sm"
-                    value={bulkFormData.names}
-                    onChange={(e) => handleBulkNameChange(e.target.value)}
-                    placeholder={'例:\\n佐藤 太郎\\n鈴木 花子'}
-                    required
-                  />
-                </div>
-                <div>
-                  <label
-                    htmlFor="bulk-kanas"
-                    className="block text-xs font-medium text-gray-700 mb-1"
-                  >
-                    かな
-                  </label>
-                  <textarea
-                    id="bulk-kanas"
-                    className="input-field min-h-[120px] font-mono text-sm"
-                    value={bulkFormData.kanas}
-                    onChange={(e) => setBulkFormData({ ...bulkFormData, kanas: e.target.value })}
-                    placeholder={'例:\\nさとう たろう\\nすずき はなこ'}
-                    required
-                  />
-                </div>
-              </div>
+              <textarea
+                id="bulk-members"
+                className="input-field min-h-[120px] font-mono text-sm"
+                value={bulkFormData.text}
+                onChange={(e) => setBulkFormData({ text: e.target.value })}
+                placeholder="例:&#10;佐藤 太郎 さとう&#10;鈴木 花子 すずき"
+                required
+              />
             </div>
             <button type="submit" className="btn-primary w-full">
               一括追加
