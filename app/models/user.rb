@@ -7,7 +7,8 @@ class User < ApplicationRecord
 
   has_many :worksheets, dependent: :destroy
 
-  validates :email, presence: true, uniqueness: true
+  validates :email, presence: { message: 'は必須です' }, 
+                   uniqueness: { message: 'はすでに登録されています' }
 
   # デモ用メンバーデータ（新スキーマに対応: name, kana）
   DEMO_MEMBERS_DATA = [

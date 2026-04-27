@@ -4,9 +4,9 @@ class MemberOption < ApplicationRecord
   belongs_to :work
   belongs_to :member
 
-  validates :status, presence: true
+  validates :status, presence: { message: 'は必須です' }
   validates :work_id, uniqueness: { scope: :member_id, message: '同じタスクにはすでに設定済みです' }
-  validates :status, inclusion: { in: [0, 1] }
+  validates :status, inclusion: { in: [0, 1], message: '無効な値です' }
   validate :fixed_setting_must_be_single_per_member
 
   private

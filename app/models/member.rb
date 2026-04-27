@@ -7,8 +7,8 @@ class Member < ApplicationRecord
   has_many :works, through: :member_options
   has_many :histories, dependent: :destroy
 
-  validates :name, presence: true
-  validates :name, length: { maximum: 255 }
+  validates :name, presence: { message: 'は必須です' }
+  validates :name, length: { maximum: 255, message: 'は255文字以内でお願いします' }
 
   scope :active, -> { where(archive: false) }
   scope :archived, -> { where(archive: true) }

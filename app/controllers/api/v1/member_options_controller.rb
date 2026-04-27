@@ -6,7 +6,7 @@ module Api
       before_action :set_member_option, only: [:destroy]
 
       def index
-        return render_error('member_id is required', :unprocessable_content) if params[:member_id].blank?
+        return render_error('メンバーID は 必須です', :unprocessable_content) if params[:member_id].blank?
 
         member = current_worksheet.members.find_by(id: params[:member_id])
         return render_error('メンバーが見つかりません', :not_found) unless member
