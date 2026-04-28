@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import type { Member, Work, MemberOptionSetting } from '../../types';
+import type { Member, Work, MemberOptionSetting, WorksheetSummary } from '../../types';
 import ImportModal from '../ImportModal';
 
 interface BulkFormData {
@@ -68,10 +68,25 @@ export default function Members({ worksheetId, isDemoUser = false }: Props): JSX
     }
   };
 
-  const handleImportModalOpen = (): void => {
+  const handleImportModalOpen = async (): Promise<void> => {
     handleDemoUserAction('インポート');
-    if (!isDemoUser) {
+    if (isDemoUser) {
+      return;
+    }
+
+    // ワークシート数をチェック
+    try {
+      const res = await axios.get<WorksheetSummary[]>('/api/v1/worksheets');
+      if (res.data.length < 2) {
+        alert(
+          'インポートを行うには、ワークシートが2つ以上必要です。先にワークシートを作成してください。'
+        );
+        return;
+      }
       setShowImportModal(true);
+    } catch (error) {
+      console.error('ワークシート数の確認に失敗しました:', error);
+      alert('ワークシート情報の取得に失敗しました');
     }
   };
 
