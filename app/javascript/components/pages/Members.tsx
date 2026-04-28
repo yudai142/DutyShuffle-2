@@ -281,7 +281,9 @@ export default function Members({ worksheetId, isDemoUser = false }: Props): JSX
             {showSingleForm ? 'キャンセル' : '新規登録'}
           </button>
           <button
-            onClick={handleImportModalOpen}
+            onClick={() => {
+              void handleImportModalOpen();
+            }}
             disabled={members.length === 0 || isDemoUser}
             className={`btn-primary py-1 whitespace-nowrap ${isDemoUser ? 'opacity-50 cursor-not-allowed' : ''}`}
             title={members.length === 0 ? 'インポート対象がありません' : 'インポート'}
