@@ -60,7 +60,6 @@ RSpec.describe 'API V1 Demo Seed (Issue #30)', type: :request do
         # 最初のメンバーデータ確認
         first_member = worksheet.members.first
         expect(first_member.name).to eq('テスト 太郎')
-        expect(first_member.kana).to eq('てすとたろう')
         expect(first_member.archive).to be(false)
       end
 

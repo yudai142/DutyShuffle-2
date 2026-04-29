@@ -40,8 +40,7 @@ RSpec.describe 'API V1: Demo Account Restrictions', type: :request do
       it 'メンバー作成が 403 Forbidden を返す' do
         post '/api/v1/members', params: {
           member: {
-            name: 'テスト ユーザー',
-            kana: 'てすとゆーざー'
+            name: 'テスト ユーザー'
           }
         }
 
@@ -52,8 +51,7 @@ RSpec.describe 'API V1: Demo Account Restrictions', type: :request do
       it 'メンバー更新が 403 Forbidden を返す' do
         patch "/api/v1/members/#{demo_member.id}", params: {
           member: {
-            name: 'テスト 更新',
-            kana: 'てすとこうしん'
+            name: 'テスト 更新'
           }
         }
 
