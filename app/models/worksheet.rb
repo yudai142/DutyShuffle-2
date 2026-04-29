@@ -5,11 +5,14 @@ class Worksheet < ApplicationRecord
   has_many :members, dependent: :destroy
   has_many :works, dependent: :destroy
   has_many :histories, dependent: :destroy
+  has_many :off_works, through: :works
 
   before_validation :assign_test_fallback_user, on: :create
 
-  validates :interval, presence: true, numericality: { greater_than: 0 }
-  validates :week, presence: true, numericality: { greater_than_or_equal_to: 0, less_than: 7 }
+  validates :interval, presence: { message: 'は必須です' }, 
+                       numericality: { greater_than: 0, message: '0 より大きい数値を入力してください' }
+  validates :week, presence: { message: 'は必須です' }, 
+                   numericality: { greater_than_or_equal_to: 0, less_than: 7, message: '0 から 6 の値を入力してください' }
 
   scope :weekly, -> { where(week_use: true) }
   scope :interval_based, -> { where(week_use: false) }

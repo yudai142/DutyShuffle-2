@@ -5,9 +5,9 @@ class History < ApplicationRecord
   belongs_to :member
   belongs_to :worksheet
 
-  validates :date, presence: true
-  validates :worksheet_id, presence: true
-  validates :member_id, uniqueness: { scope: [:worksheet_id, :date] }
+  validates :date, presence: { message: 'は必須です' }
+  validates :worksheet_id, presence: { message: 'は必須です' }
+  validates :member_id, uniqueness: { scope: [:worksheet_id, :date], message: 'この日付には既に同じメンバーの記録があります' }
 
   scope :by_date, ->(date) { where(date: date) }
   scope :by_month, lambda { |year, month|

@@ -94,7 +94,6 @@ module Api
             source_member = source_worksheet.members.find(member_id)
             new_member = target_worksheet.members.build(
               name: source_member.name,
-              kana: source_member.kana,
               archive: source_member.archive
             )
             new_member.save!
@@ -112,7 +111,7 @@ module Api
       end
 
       def member_params
-        params.require(:member).permit(:name, :kana, :archive)
+        params.require(:member).permit(:name, :archive)
       end
 
       def include_archived?
@@ -127,7 +126,6 @@ module Api
         payload = {
           id: member.id,
           name: member.name,
-          kana: member.kana,
           archive: member.archive,
           created_at: member.created_at,
           updated_at: member.updated_at

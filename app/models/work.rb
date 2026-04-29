@@ -8,7 +8,8 @@ class Work < ApplicationRecord
   has_many :histories, dependent: :destroy
   has_many :off_works, dependent: :destroy
 
-  validates :name, presence: true, uniqueness: { scope: :worksheet_id }
+  validates :name, presence: { message: 'は必須です' }, 
+                   uniqueness: { scope: :worksheet_id, message: 'はすでに存在しています' }
 
   scope :active, -> { where(archive: false) }
   scope :archived, -> { where(archive: true) }

@@ -8,7 +8,7 @@ module Api
         if @shuffle_option
           render json: @shuffle_option
         else
-          render json: { error: 'No shuffle option found' }, status: :not_found
+          render json: { error: 'シャッフル設定が見つかりません' }, status: :not_found
         end
       end
 

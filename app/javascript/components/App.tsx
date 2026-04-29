@@ -111,6 +111,37 @@ export default function App(): JSX.Element {
     setActiveWorksheetId(null);
   };
 
+  const updateUserName = async (newName: string): Promise<void> => {
+    if (isDemoUser()) {
+      setWorksheetNotification({
+        message: 'デモユーザーはユーザー名を変更することはできません',
+        type: 'error',
+      });
+      window.setTimeout(() => setWorksheetNotification(null), 4000);
+      return;
+    }
+
+    try {
+      const res = await axios.patch<AuthResponse>('/api/v1/auth/update_name', {
+        name: newName,
+      });
+      setCurrentUser(res.data.user);
+      setWorksheetNotification({
+        message: 'ユーザー名を更新しました',
+        type: 'success',
+      });
+      window.setTimeout(() => setWorksheetNotification(null), 4000);
+    } catch (error) {
+      const axiosError = error as { response?: { data?: { error?: string; errors?: string[] } } };
+      const msg =
+        axiosError.response?.data?.errors?.join(', ') ||
+        axiosError.response?.data?.error ||
+        'ユーザー名の更新に失敗しました';
+      setWorksheetNotification({ message: msg, type: 'error' });
+      window.setTimeout(() => setWorksheetNotification(null), 4000);
+    }
+  };
+
   const handleWorksheetSelect = async (worksheetId: number): Promise<void> => {
     try {
       // サーバーのセッションを更新
@@ -277,6 +308,7 @@ export default function App(): JSX.Element {
       <Layout
         currentUserName={currentUser?.name || currentUser?.email || ''}
         onLogout={logout}
+        onUpdateUserName={updateUserName}
         worksheets={worksheets}
         activeWorksheetId={activeWorksheetId}
         onWorksheetSelect={handleWorksheetSelect}
@@ -289,6 +321,13 @@ export default function App(): JSX.Element {
         worksheetNotification={worksheetNotification}
         onWorksheetNotificationDismiss={() => setWorksheetNotification(null)}
         isDemoUser={isDemoUser()}
+        onDemoUserNameClick={() => {
+          setWorksheetNotification({
+            message: 'デモユーザーはユーザー名を変更することはできません',
+            type: 'error',
+          });
+          window.setTimeout(() => setWorksheetNotification(null), 4000);
+        }}
       >
         <Routes>
           <Route path="/password-reset" element={<PasswordResetPage />} />

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
-import type { Member, Work, MemberOptionSetting } from '../../types';
+import type { Member, Work, MemberOptionSetting, WorksheetSummary } from '../../types';
 import ImportModal from '../ImportModal';
 
 interface BulkFormData {
@@ -9,7 +9,6 @@ interface BulkFormData {
 
 interface EditFormData {
   name: string;
-  kana: string;
   archive: boolean;
 }
 
@@ -23,125 +22,6 @@ interface Props {
   isDemoUser?: boolean;
 }
 
-// ひらがな予測関数（ひらがナ返却用）
-const predictKanaHiragana = (name: string): string => {
-  // ひらがなが含まれていたら、そのままひらがなを返す
-  if (/[ぁ-ん]/.test(name)) {
-    return name;
-  }
-
-  // カタカナからひらがなに変換するマップ
-  const katakanaHiraganaMap: { [key: string]: string } = {
-    ア: 'あ',
-    イ: 'い',
-    ウ: 'う',
-    エ: 'え',
-    オ: 'お',
-    カ: 'か',
-    キ: 'き',
-    ク: 'く',
-    ケ: 'け',
-    コ: 'こ',
-    ガ: 'が',
-    ギ: 'ぎ',
-    グ: 'ぐ',
-    ゲ: 'げ',
-    ゴ: 'ご',
-    サ: 'さ',
-    シ: 'し',
-    ス: 'す',
-    セ: 'せ',
-    ソ: 'そ',
-    ザ: 'ざ',
-    ジ: 'じ',
-    ズ: 'ず',
-    ゼ: 'ぜ',
-    ゾ: 'ぞ',
-    タ: 'た',
-    チ: 'ち',
-    ツ: 'つ',
-    テ: 'て',
-    ト: 'と',
-    ダ: 'だ',
-    ヂ: 'ぢ',
-    ヅ: 'づ',
-    デ: 'で',
-    ド: 'ど',
-    ナ: 'な',
-    ニ: 'に',
-    ヌ: 'ぬ',
-    ネ: 'ね',
-    ノ: 'の',
-    ハ: 'は',
-    ヒ: 'ひ',
-    フ: 'ふ',
-    ヘ: 'へ',
-    ホ: 'ほ',
-    バ: 'ば',
-    ビ: 'び',
-    ブ: 'ぶ',
-    ベ: 'べ',
-    ボ: 'ぼ',
-    パ: 'ぱ',
-    ピ: 'ぴ',
-    プ: 'ぷ',
-    ペ: 'ぺ',
-    ポ: 'ぽ',
-    マ: 'ま',
-    ミ: 'み',
-    ム: 'む',
-    メ: 'め',
-    モ: 'も',
-    ヤ: 'や',
-    ユ: 'ゆ',
-    ヨ: 'よ',
-    ラ: 'ら',
-    リ: 'り',
-    ル: 'る',
-    レ: 'れ',
-    ロ: 'ろ',
-    ワ: 'わ',
-    ヰ: 'ゐ',
-    ヱ: 'ゑ',
-    ヲ: 'を',
-    ン: 'ん',
-    ー: 'ー',
-    ' ': ' ',
-  };
-
-  const commonNameMapHiragana: { [key: string]: string } = {
-    山田: 'やまだ',
-    佐藤: 'さとう',
-    鈴木: 'すずき',
-    伊藤: 'いとう',
-    高橋: 'たかはし',
-    渡辺: 'わたなべ',
-    中村: 'なかむら',
-    小林: 'こばやし',
-    田中: 'たなか',
-    太郎: 'たろう',
-    次郎: 'じろう',
-    花子: 'はなこ',
-  };
-
-  // カタカナをひらがなに変換
-  if (/[ァ-ン]/.test(name)) {
-    return name
-      .split('')
-      .map((char) => katakanaHiraganaMap[char] || char)
-      .join('');
-  }
-
-  // 漢字の辞書マップで対応するひらがなに変換
-  for (const [kanji, kana] of Object.entries(commonNameMapHiragana)) {
-    if (name.includes(kanji)) {
-      return name.split(kanji).join(kana);
-    }
-  }
-
-  return name;
-};
-
 export default function Members({ worksheetId, isDemoUser = false }: Props): JSX.Element {
   const [members, setMembers] = useState<Member[]>([]);
   const [works, setWorks] = useState<Work[]>([]);
@@ -153,12 +33,10 @@ export default function Members({ worksheetId, isDemoUser = false }: Props): JSX
   const [bulkFormData, setBulkFormData] = useState<BulkFormData>({ text: '' });
   const [singleFormData, setSingleFormData] = useState<EditFormData>({
     name: '',
-    kana: '',
     archive: false,
   });
   const [editFormData, setEditFormData] = useState<EditFormData>({
     name: '',
-    kana: '',
     archive: false,
   });
   const [settingForm, setSettingForm] = useState<SettingFormData>({
@@ -190,10 +68,25 @@ export default function Members({ worksheetId, isDemoUser = false }: Props): JSX
     }
   };
 
-  const handleImportModalOpen = (): void => {
+  const handleImportModalOpen = async (): Promise<void> => {
     handleDemoUserAction('インポート');
-    if (!isDemoUser) {
+    if (isDemoUser) {
+      return;
+    }
+
+    // ワークシート数をチェック
+    try {
+      const res = await axios.get<WorksheetSummary[]>('/api/v1/worksheets');
+      if (res.data.length < 2) {
+        alert(
+          'インポートを行うには、ワークシートが2つ以上必要です。先にワークシートを作成してください。'
+        );
+        return;
+      }
       setShowImportModal(true);
+    } catch (error) {
+      console.error('ワークシート数の確認に失敗しました:', error);
+      alert('ワークシート情報の取得に失敗しました');
     }
   };
 
@@ -273,7 +166,7 @@ export default function Members({ worksheetId, isDemoUser = false }: Props): JSX
         member: singleFormData,
       });
 
-      setSingleFormData({ name: '', kana: '', archive: false });
+      setSingleFormData({ name: '', archive: false });
       setShowSingleForm(false);
       alert('メンバーを登録しました');
       await fetchData();
@@ -282,37 +175,13 @@ export default function Members({ worksheetId, isDemoUser = false }: Props): JSX
     }
   };
 
-  const handleSingleFormKeyDown = (e: React.KeyboardEvent<HTMLInputElement>): void => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-    }
-  };
-
   const handleOpenEditModal = (member: Member): void => {
     setSelectedMember(member);
     setEditFormData({
       name: member.name,
-      kana: member.kana,
       archive: member.archive,
     });
     setSettingForm({ work_id: '', status: '0' });
-  };
-
-  const handleNameChange = (newName: string): void => {
-    setEditFormData((prev) => {
-      const predicted = predictKanaHiragana(newName);
-      return {
-        ...prev,
-        name: newName,
-        kana: predicted,
-      };
-    });
-  };
-
-  const handleEditFormKeyDown = (e: React.KeyboardEvent<HTMLInputElement>): void => {
-    if (e.key === 'Enter') {
-      e.preventDefault();
-    }
   };
 
   const handleEditSubmit = async (e: React.FormEvent<HTMLFormElement>): Promise<void> => {
@@ -397,22 +266,26 @@ export default function Members({ worksheetId, isDemoUser = false }: Props): JSX
           </select>
           <button
             onClick={handleBulkFormToggle}
-            className="btn-primary py-1 whitespace-nowrap"
+            disabled={isDemoUser}
+            className={`btn-primary py-1 whitespace-nowrap ${isDemoUser ? 'opacity-50 cursor-not-allowed' : ''}`}
             title="一括追加"
           >
             {showBulkForm ? 'キャンセル' : '一括追加'}
           </button>
           <button
             onClick={handleSingleFormToggle}
-            className="btn-primary py-1 whitespace-nowrap"
+            disabled={isDemoUser}
+            className={`btn-primary py-1 whitespace-nowrap ${isDemoUser ? 'opacity-50 cursor-not-allowed' : ''}`}
             title="新規登録"
           >
             {showSingleForm ? 'キャンセル' : '新規登録'}
           </button>
           <button
-            onClick={handleImportModalOpen}
-            className="btn-secondary py-1 whitespace-nowrap"
-            disabled={members.length === 0}
+            onClick={() => {
+              void handleImportModalOpen();
+            }}
+            disabled={members.length === 0 || isDemoUser}
+            className={`btn-primary py-1 whitespace-nowrap ${isDemoUser ? 'opacity-50 cursor-not-allowed' : ''}`}
             title={members.length === 0 ? 'インポート対象がありません' : 'インポート'}
           >
             インポート
@@ -458,37 +331,10 @@ export default function Members({ worksheetId, isDemoUser = false }: Props): JSX
                 type="text"
                 className="input-field"
                 value={singleFormData.name}
-                onChange={(e) => {
-                  const newName = e.target.value;
-                  setSingleFormData((prev) => {
-                    const predicted = predictKanaHiragana(newName);
-                    return {
-                      ...prev,
-                      name: newName,
-                      kana: predicted,
-                    };
-                  });
-                }}
-                onKeyDown={handleSingleFormKeyDown}
+                onChange={(e) => setSingleFormData({ ...singleFormData, name: e.target.value })}
                 placeholder="例：山田太郎"
                 required
               />
-            </div>
-            <div>
-              <label htmlFor="single-kana" className="block text-sm font-medium text-gray-700">
-                かな
-              </label>
-              <input
-                id="single-kana"
-                type="text"
-                className="input-field"
-                value={singleFormData.kana}
-                onChange={(e) => setSingleFormData({ ...singleFormData, kana: e.target.value })}
-                onKeyDown={handleSingleFormKeyDown}
-                placeholder="例：やまただろう"
-                required
-              />
-              <p className="text-xs text-gray-500 mt-1">※名前を入力するとかなが自動予測されます</p>
             </div>
             <div className="flex gap-3">
               <button type="submit" className="btn-primary flex-1">
@@ -505,12 +351,12 @@ export default function Members({ worksheetId, isDemoUser = false }: Props): JSX
             key={member.id}
             type="button"
             onClick={() => handleOpenEditModal(member)}
-            className="card text-left transition hover:shadow-lg hover:-translate-y-0.5"
+            disabled={isDemoUser}
+            className={`card text-left transition ${isDemoUser ? 'opacity-60 cursor-not-allowed' : 'hover:shadow-lg hover:-translate-y-0.5'}`}
           >
             <div className="flex items-start justify-between">
               <div className="flex-1">
                 <h3 className="font-semibold text-gray-900">{member.name}</h3>
-                <p className="text-sm text-gray-500">{member.kana}</p>
               </div>
               <span className="text-xs font-medium text-gray-400">編集</span>
             </div>
@@ -544,27 +390,9 @@ export default function Members({ worksheetId, isDemoUser = false }: Props): JSX
                       type="text"
                       className="input-field"
                       value={editFormData.name}
-                      onChange={(e) => handleNameChange(e.target.value)}
-                      onKeyDown={handleEditFormKeyDown}
+                      onChange={(e) => setEditFormData({ ...editFormData, name: e.target.value })}
                       required
                     />
-                  </div>
-                  <div>
-                    <label htmlFor="edit-kana" className="block text-sm font-medium text-gray-700">
-                      かな
-                    </label>
-                    <input
-                      id="edit-kana"
-                      type="text"
-                      className="input-field"
-                      value={editFormData.kana}
-                      onChange={(e) => setEditFormData({ ...editFormData, kana: e.target.value })}
-                      onKeyDown={handleEditFormKeyDown}
-                      required
-                    />
-                    <p className="text-xs text-gray-500 mt-1">
-                      ※名前を入力するとかなが自動予測されます
-                    </p>
                   </div>
                   <div className="flex items-center gap-3">
                     <input
@@ -588,7 +416,11 @@ export default function Members({ worksheetId, isDemoUser = false }: Props): JSX
                     >
                       キャンセル
                     </button>
-                    <button type="submit" className="btn-primary flex-1">
+                    <button
+                      type="submit"
+                      disabled={isDemoUser}
+                      className={`btn-primary flex-1 ${isDemoUser ? 'opacity-50 cursor-not-allowed' : ''}`}
+                    >
                       保存
                     </button>
                   </div>
@@ -644,7 +476,11 @@ export default function Members({ worksheetId, isDemoUser = false }: Props): JSX
                       <option value="1">除外</option>
                     </select>
                   </div>
-                  <button type="submit" className="btn-primary w-full">
+                  <button
+                    type="submit"
+                    disabled={isDemoUser}
+                    className={`btn-primary w-full ${isDemoUser ? 'opacity-50 cursor-not-allowed' : ''}`}
+                  >
                     設定を追加
                   </button>
                 </form>
@@ -673,7 +509,8 @@ export default function Members({ worksheetId, isDemoUser = false }: Props): JSX
                         <button
                           type="button"
                           onClick={() => handleDeleteSetting(option.id)}
-                          className="text-sm font-medium text-red-500 hover:text-red-700"
+                          disabled={isDemoUser}
+                          className={`text-sm font-medium ${isDemoUser ? 'text-gray-400 cursor-not-allowed' : 'text-red-500 hover:text-red-700'}`}
                         >
                           解除
                         </button>

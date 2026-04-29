@@ -84,7 +84,6 @@ describe('Members - メンバー管理', () => {
       // 左側：編集フォームが表示される
       expect(screen.getByText('メンバーを編集')).toBeInTheDocument();
       expect(screen.getByLabelText('名前')).toBeInTheDocument();
-      expect(screen.getByLabelText('かな')).toBeInTheDocument();
       expect(screen.getByLabelText('アーカイブにする')).toBeInTheDocument();
 
       // 右側：固定/除外設定パネルが表示される

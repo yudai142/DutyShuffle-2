@@ -3,7 +3,7 @@ require 'rails_helper'
 describe 'API V1 Members - name カラム統合', type: :request do
   let!(:user) { User.find_by(email: 'default@taskwheel.local') || create(:user, email: 'default@taskwheel.local') }
   let!(:worksheet) { user.worksheets.first || create(:worksheet, user:) }
-  let!(:member) { create(:member, worksheet:, name: '山田 太郎', kana: 'ヤマダ タロウ') }
+  let!(:member) { create(:member, worksheet:, name: '山田 太郎') }
 
   describe 'PATCH /api/v1/members/:id' do
     context '名前を更新できる' do
@@ -15,13 +15,7 @@ describe 'API V1 Members - name カラム統合', type: :request do
         expect(json_response['name']).to eq('佐藤 次郎')
       end
 
-      it 'かな名を更新' do
-        patch "/api/v1/members/#{member.id}", 
-              params: { member: { kana: 'サトウ ジロウ' } }
 
-        expect(response).to have_http_status(:ok)
-        expect(json_response['kana']).to eq('サトウ ジロウ')
-      end
     end
 
     context 'アーカイブ状態を更新' do
@@ -40,8 +34,8 @@ describe 'API V1 Members - name カラム統合', type: :request do
     context '複数メンバーを一括登録' do
       it '改行区切りでメンバーを一括登録' do
         members_data = [
-          { name: '鈴木 花子', kana: 'スズキ ハナコ' },
-          { name: '伊藤 次郎', kana: 'イトウ ジロウ' },
+          { name: '鈴木 花子' },
+          { name: '伊藤 次郎' },
         ]
 
         post '/api/v1/members/bulk_create',
@@ -55,8 +49,8 @@ describe 'API V1 Members - name カラム統合', type: :request do
 
       it '無効な名前の場合はスキップ' do
         members_data = [
-          { name: '', kana: 'テスト' },
-          { name: '太郎', kana: 'タロウ' },
+          { name: '' },
+          { name: '太郎' },
         ]
 
         post '/api/v1/members/bulk_create',
@@ -68,7 +62,7 @@ describe 'API V1 Members - name カラム統合', type: :request do
   end
 
   describe 'GET /api/v1/members' do
-    let!(:archived_member) { create(:member, worksheet:, name: '新田 葉男', kana: 'ニッタ ハオ', archive: true) }
+    let!(:archived_member) { create(:member, worksheet:, name: '新田 葉男', archive: true) }
 
     context 'アーカイブフィルタリング' do
       it '有効なメンバーのみを取得' do

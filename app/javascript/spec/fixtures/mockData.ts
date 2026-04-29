@@ -38,7 +38,6 @@ export const mockMembers: Member[] = [
   {
     id: 1,
     name: 'Yamada Taro',
-    kana: 'ヤマダ タロウ',
     archive: false,
     created_at: '2026-04-04T00:00:00Z',
     updated_at: '2026-04-04T00:00:00Z',
@@ -46,7 +45,6 @@ export const mockMembers: Member[] = [
   {
     id: 2,
     name: 'Tanaka Hanako',
-    kana: 'タナカ ハナコ',
     archive: false,
     created_at: '2026-04-04T00:00:00Z',
     updated_at: '2026-04-04T00:00:00Z',
@@ -54,7 +52,6 @@ export const mockMembers: Member[] = [
   {
     id: 3,
     name: 'Suzuki Jiro',
-    kana: 'スズキ ジロウ',
     archive: false,
     created_at: '2026-04-04T00:00:00Z',
     updated_at: '2026-04-04T00:00:00Z',
@@ -70,7 +67,6 @@ export const mockMembersForManagement: Member[] = [
   {
     id: 1,
     name: 'Yamada Taro',
-    kana: 'ヤマダ タロウ',
     archive: false,
     created_at: '2026-04-04T00:00:00Z',
     updated_at: '2026-04-04T00:00:00Z',
@@ -79,7 +75,6 @@ export const mockMembersForManagement: Member[] = [
   {
     id: 2,
     name: 'Tanaka Hanako',
-    kana: 'タナカ ハナコ',
     archive: true,
     created_at: '2026-04-04T00:00:00Z',
     updated_at: '2026-04-04T00:00:00Z',
@@ -92,7 +87,6 @@ export const mockMembersWithArchived: Member[] = [
   {
     id: 1,
     name: 'Yamada Taro',
-    kana: 'ヤマダ タロウ',
     archive: false,
     created_at: '2026-04-04T00:00:00Z',
     updated_at: '2026-04-04T00:00:00Z',
@@ -100,7 +94,6 @@ export const mockMembersWithArchived: Member[] = [
   {
     id: 2,
     name: 'Tanaka Hanako',
-    kana: 'タナカ ハナコ',
     archive: false,
     created_at: '2026-04-04T00:00:00Z',
     updated_at: '2026-04-04T00:00:00Z',
@@ -108,7 +101,6 @@ export const mockMembersWithArchived: Member[] = [
   {
     id: 3,
     name: 'Archived Member',
-    kana: 'アーカイブ メンバー',
     archive: true,
     created_at: '2026-04-04T00:00:00Z',
     updated_at: '2026-04-04T00:00:00Z',

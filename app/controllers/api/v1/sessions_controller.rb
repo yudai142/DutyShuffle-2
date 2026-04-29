@@ -94,6 +94,23 @@ module Api
         render json: { current_worksheet: serialize_worksheet(worksheet) }
       end
 
+      # PATCH /api/v1/auth/update_name
+      # ユーザー名を更新
+      def update_name
+        user = User.find_by(id: session[:user_id])
+        return render json: { authenticated: false }, status: :unauthorized if user.blank?
+        return render json: { error: 'デモユーザーはユーザー名を変更することはできません' }, status: :forbidden if user.email == 'test@example.com'
+
+        if user.update(name: params[:name].to_s.strip)
+          render json: {
+            authenticated: true,
+            user: serialize_user(user)
+          }
+        else
+          render json: { errors: user.errors.full_messages }, status: :unprocessable_content
+        end
+      end
+
       private
 
       def current_worksheet_for(user)

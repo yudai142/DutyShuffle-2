@@ -27,6 +27,7 @@ interface LayoutProps {
   children: React.ReactNode;
   currentUserName: string;
   onLogout: () => Promise<void>;
+  onUpdateUserName: (name: string) => Promise<void>;
   worksheets: WorksheetSummary[];
   activeWorksheetId: number | null;
   onWorksheetSelect: (id: number) => void;
@@ -39,12 +40,14 @@ interface LayoutProps {
   worksheetNotification: Notification | null;
   onWorksheetNotificationDismiss: () => void;
   isDemoUser?: boolean;
+  onDemoUserNameClick?: () => void;
 }
 
 export default function Layout({
   children,
   currentUserName,
   onLogout,
+  onUpdateUserName,
   worksheets,
   activeWorksheetId,
   onWorksheetSelect,
@@ -57,8 +60,32 @@ export default function Layout({
   worksheetNotification,
   onWorksheetNotificationDismiss,
   isDemoUser = false,
+  onDemoUserNameClick,
 }: LayoutProps): JSX.Element {
   const [sidebarOpen, setSidebarOpen] = useState<boolean>(true);
+  const [showUserNameModal, setShowUserNameModal] = useState<boolean>(false);
+  const [newUserName, setNewUserName] = useState<string>(currentUserName);
+  const [worksheetPageIndex, setWorksheetPageIndex] = useState<number>(0);
+
+  // ワークシート表示数を計算（画面サイズに応じて調整）
+  const worksheetItemsPerPage = 4;
+  const totalPages = Math.ceil(worksheets.length / worksheetItemsPerPage);
+  const visibleWorksheets = worksheets.slice(
+    worksheetPageIndex * worksheetItemsPerPage,
+    (worksheetPageIndex + 1) * worksheetItemsPerPage
+  );
+
+  const handlePrevPage = (): void => {
+    if (worksheetPageIndex > 0) {
+      setWorksheetPageIndex(worksheetPageIndex - 1);
+    }
+  };
+
+  const handleNextPage = (): void => {
+    if (worksheetPageIndex < totalPages - 1) {
+      setWorksheetPageIndex(worksheetPageIndex + 1);
+    }
+  };
 
   const navigation: NavItem[] = [
     { name: 'ダッシュボード', href: '/', icon: HomeIcon },
@@ -101,7 +128,22 @@ export default function Layout({
         </nav>
 
         <div className="p-4 border-t space-y-2">
-          {sidebarOpen && <p className="text-xs text-gray-500 text-center">{currentUserName}</p>}
+          {sidebarOpen && (
+            <button
+              onClick={() => {
+                if (isDemoUser) {
+                  onDemoUserNameClick?.();
+                } else {
+                  setNewUserName(currentUserName);
+                  setShowUserNameModal(true);
+                }
+              }}
+              className="w-full text-xs text-gray-500 hover:text-primary-600 transition-colors text-center py-1 px-2 rounded hover:bg-primary-50"
+              title={isDemoUser ? 'デモユーザーは変更できません' : 'ユーザー名を変更'}
+            >
+              {currentUserName}
+            </button>
+          )}
           <button
             onClick={() => {
               void onLogout();
@@ -125,6 +167,62 @@ export default function Layout({
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
+        {/* User Name Modal */}
+        {showUserNameModal && (
+          <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+            <div className="w-full max-w-md rounded-xl bg-white p-6 shadow-xl">
+              <div className="mb-4 flex items-center justify-between">
+                <h3 className="text-lg font-bold text-gray-900">ユーザー名を変更</h3>
+                <button
+                  onClick={() => setShowUserNameModal(false)}
+                  aria-label="モーダルを閉じる"
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <XMarkIcon className="h-6 w-6" />
+                </button>
+              </div>
+              <div className="space-y-4">
+                <input
+                  type="text"
+                  placeholder="ユーザー名"
+                  value={newUserName}
+                  onChange={(e) => setNewUserName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' && newUserName.trim()) {
+                      void onUpdateUserName(newUserName).then(() => {
+                        setShowUserNameModal(false);
+                      });
+                    }
+                  }}
+                  className="w-full rounded-lg border border-gray-300 px-4 py-2 text-gray-900 placeholder-gray-500 focus:border-primary-500 focus:outline-none focus:ring-1 focus:ring-primary-500"
+                  autoFocus
+                />
+                <div className="flex gap-2 justify-end">
+                  <button
+                    onClick={() => setShowUserNameModal(false)}
+                    className="px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 transition-colors"
+                  >
+                    キャンセル
+                  </button>
+                  <button
+                    onClick={() => {
+                      if (newUserName.trim()) {
+                        void onUpdateUserName(newUserName).then(() => {
+                          setShowUserNameModal(false);
+                        });
+                      }
+                    }}
+                    disabled={!newUserName.trim()}
+                    className="px-4 py-2 rounded-lg bg-primary-600 text-white hover:bg-primary-700 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    保存
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Notification Popup */}
         {worksheetNotification && (
           <div className="fixed top-6 right-6 z-50 max-w-sm w-full animate-fade-in">
@@ -199,42 +297,88 @@ export default function Layout({
         {/* Header */}
         <header className="bg-white shadow">
           <div className="px-6 py-3 border-b border-gray-200">
-            {/* Worksheet Tabs */}
-            <div className="flex items-center gap-2 overflow-x-auto">
-              {worksheets.map((worksheet: WorksheetSummary) => (
-                <div key={worksheet.id} className="relative">
-                  <button
-                    key={`${worksheet.id}-select`}
-                    role="tab"
-                    onClick={() =>
-                      activeWorksheetId === worksheet.id
-                        ? onEditWorksheet(worksheet)
-                        : onWorksheetSelect(worksheet.id)
-                    }
-                    className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
-                      activeWorksheetId === worksheet.id
-                        ? 'bg-primary-600 text-white border border-primary-600 hover:bg-primary-700'
-                        : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
-                    }`}
-                    title={
-                      activeWorksheetId === worksheet.id ? 'クリックで編集' : 'クリックで切り替え'
-                    }
-                  >
-                    {worksheet.name}
-                  </button>
-                </div>
-              ))}
+            {/* Worksheet Tabs with Pagination */}
+            <div className="flex items-center gap-2">
+              {/* Previous Button */}
               <button
-                onClick={() =>
-                  isDemoUser
-                    ? alert('デモアカウントではワークシートを作成できません')
-                    : onShowWorksheetModal(true)
-                }
-                className="flex items-center gap-1 px-3 py-2 rounded-lg border-2 border-primary-200 text-primary-600 hover:bg-primary-50 transition-colors whitespace-nowrap"
-                title="新しいワークシートを作成"
+                onClick={handlePrevPage}
+                disabled={worksheetPageIndex === 0}
+                className="flex-shrink-0 p-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title="前へ"
               >
-                <PlusIcon className="h-5 w-5" />
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M15 19l-7-7 7-7"
+                  />
+                </svg>
               </button>
+
+              {/* Worksheet Tabs */}
+              <div className="flex items-center gap-2 flex-1 overflow-hidden">
+                {visibleWorksheets.map((worksheet: WorksheetSummary) => (
+                  <div key={worksheet.id} className="relative">
+                    <button
+                      key={`${worksheet.id}-select`}
+                      role="tab"
+                      onClick={() =>
+                        activeWorksheetId === worksheet.id
+                          ? onEditWorksheet(worksheet)
+                          : onWorksheetSelect(worksheet.id)
+                      }
+                      className={`px-4 py-2 rounded-lg whitespace-nowrap transition-colors ${
+                        activeWorksheetId === worksheet.id
+                          ? 'bg-primary-600 text-white border border-primary-600 hover:bg-primary-700'
+                          : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                      }`}
+                      title={
+                        activeWorksheetId === worksheet.id ? 'クリックで編集' : 'クリックで切り替え'
+                      }
+                    >
+                      {worksheet.name}
+                    </button>
+                  </div>
+                ))}
+
+                {/* Add New Worksheet Button */}
+                <button
+                  onClick={() =>
+                    isDemoUser
+                      ? alert('デモアカウントではワークシートを作成できません')
+                      : onShowWorksheetModal(true)
+                  }
+                  className="flex-shrink-0 flex items-center gap-1 px-3 py-2 rounded-lg border-2 border-primary-200 text-primary-600 hover:bg-primary-50 transition-colors"
+                  title="新しいワークシートを作成"
+                >
+                  <PlusIcon className="h-5 w-5" />
+                </button>
+              </div>
+
+              {/* Next Button */}
+              <button
+                onClick={handleNextPage}
+                disabled={worksheetPageIndex >= totalPages - 1}
+                className="flex-shrink-0 p-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                title="次へ"
+              >
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M9 5l7 7-7 7"
+                  />
+                </svg>
+              </button>
+
+              {/* Page Indicator */}
+              {totalPages > 1 && (
+                <div className="flex-shrink-0 text-xs text-gray-500 ml-1">
+                  {worksheetPageIndex + 1}/{totalPages}
+                </div>
+              )}
             </div>
           </div>
         </header>

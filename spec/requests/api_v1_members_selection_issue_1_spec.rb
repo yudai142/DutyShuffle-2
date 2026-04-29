@@ -23,7 +23,6 @@ RSpec.describe 'API V1: Member Selection & Shuffle (Issue #1)', type: :request d
 
         expect(json_response[0]).to have_key('id')
         expect(json_response[0]).to have_key('name')
-        expect(json_response[0]).to have_key('kana')
         expect(json_response[0]).to have_key('archive')
       end
 

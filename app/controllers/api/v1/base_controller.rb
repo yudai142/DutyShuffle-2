@@ -56,11 +56,11 @@ module Api
       end
 
       def render_not_found(e)
-        render json: { error: 'Record not found', message: e.message }, status: :not_found
+        render json: { error: 'レコードが見つかりません', message: e.message }, status: :not_found
       end
 
       def render_unprocessable_entity(e)
-        render json: { error: 'Validation failed', messages: e.record.errors.full_messages },
+        render json: { error: 'バリデーションエラー', messages: e.record.errors.full_messages },
                status: :unprocessable_content
       end
 

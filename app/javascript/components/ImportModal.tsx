@@ -246,10 +246,7 @@ export default function ImportModal({
                       />
                       <span className="ml-3 text-sm text-gray-900">
                         {importType === 'members' && 'name' in item ? (
-                          <>
-                            <strong>{(item as Member).name}</strong>
-                            <span className="text-gray-500 ml-2">{(item as Member).kana}</span>
-                          </>
+                          <strong>{(item as Member).name}</strong>
                         ) : (
                           <strong>{(item as Work).name}</strong>
                         )}

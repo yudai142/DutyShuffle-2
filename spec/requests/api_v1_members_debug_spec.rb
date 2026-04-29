@@ -3,7 +3,7 @@ require 'rails_helper'
 describe 'API V1 Members - Setup Debug', type: :request do
   let!(:user) { User.find_by(email: 'default@taskwheel.local') || create(:user, email: 'default@taskwheel.local') }
   let!(:worksheet) { user.worksheets.first || create(:worksheet, user:) }
-  let!(:member) { create(:member, worksheet:, name: 'テスト', kana: 'テスト') }
+  let!(:member) { create(:member, worksheet:, name: 'テスト') }
 
   it 'member が作成されることを確認' do
     puts "\n=== データ確認 ==="
@@ -14,7 +14,6 @@ describe 'API V1 Members - Setup Debug', type: :request do
     
     expect(member.id).to be_present
     expect(member.name).to eq('テスト')
-    expect(member.kana).to eq('テスト')
   end
 
   it 'GET /api/v1/members が 200 を返すことを確認' do

@@ -7,37 +7,38 @@ class User < ApplicationRecord
 
   has_many :worksheets, dependent: :destroy
 
-  validates :email, presence: true, uniqueness: true
+  validates :email, presence: { message: 'は必須です' }, 
+                   uniqueness: { message: 'はすでに登録されています' }
 
-  # デモ用メンバーデータ（新スキーマに対応: name, kana）
+  # デモ用メンバーデータ（新スキーマに対応: name）
   DEMO_MEMBERS_DATA = [
-    { name: 'テスト 太郎', kana: 'てすとたろう', archive: false },
-    { name: 'テスト 花子', kana: 'てすとはなこ', archive: false },
-    { name: '釘子 津佳冴', kana: 'くぎこつかさ', archive: false },
-    { name: '長谷川 異風', kana: 'はせがわいふう', archive: false },
-    { name: '樋口 伊吹', kana: 'ひぐちいぶき', archive: false },
-    { name: '小泉 俊一', kana: 'こいずみしゅんいち', archive: false },
-    { name: '北川 優斗', kana: 'きたがわゆうと', archive: false },
-    { name: '小股 晄', kana: 'おまたあき', archive: false },
-    { name: '田鹿 蒼史', kana: 'たじかそうじ', archive: false },
-    { name: '芦生 浩明', kana: 'あしおひろあき', archive: false },
-    { name: '高宮城 誉有治', kana: 'たかみやぎようき', archive: false },
-    { name: '朴 清', kana: 'ぼくきよし', archive: false },
-    { name: '西加治工 祐樹', kana: 'にしかじくゆうき', archive: false },
-    { name: '雉子谷 茂夫', kana: 'きじだにしげお', archive: false },
-    { name: '渡谷 身志', kana: 'わたりやみり', archive: false },
-    { name: '室石 遙摯', kana: 'むろいしはると', archive: false },
-    { name: '塩足 壱', kana: 'しおたりいち', archive: false },
-    { name: '筒屋 厳春', kana: 'つつやみねはる', archive: false },
-    { name: '日陰茂井 昊', kana: 'ひかげもいそら', archive: false },
-    { name: '精廬 里備', kana: 'とぐろさとはる', archive: false },
-    { name: '喜美候部 智絃', kana: 'きみこうべちづる', archive: false },
-    { name: '竹乘 成也', kana: 'たけのりなりや', archive: false },
-    { name: '安達 城灯', kana: 'あだちきと', archive: false },
-    { name: '森田 悠翔', kana: 'もりたはると', archive: false },
-    { name: '矢野 英一', kana: 'やのえいいち', archive: false },
-    { name: '誉田 和樹', kana: 'ほまれだかずき', archive: false },
-    { name: '数 瑛斗', kana: 'かずえいと', archive: false }
+    { name: 'テスト 太郎', archive: false },
+    { name: 'テスト 花子', archive: false },
+    { name: '釘子 津佳冴', archive: false },
+    { name: '長谷川 異風', archive: false },
+    { name: '樋口 伊吹', archive: false },
+    { name: '小泉 俊一', archive: false },
+    { name: '北川 優斗', archive: false },
+    { name: '小股 晄', archive: false },
+    { name: '田鹿 蒼史', archive: false },
+    { name: '芦生 浩明', archive: false },
+    { name: '高宮城 誉有治', archive: false },
+    { name: '朴 清', archive: false },
+    { name: '西加治工 祐樹', archive: false },
+    { name: '雉子谷 茂夫', archive: false },
+    { name: '渡谷 身志', archive: false },
+    { name: '室石 遙摯', archive: false },
+    { name: '塩足 壱', archive: false },
+    { name: '筒屋 厳春', archive: false },
+    { name: '日陰茂井 昊', archive: false },
+    { name: '精廬 里備', archive: false },
+    { name: '喜美候部 智絃', archive: false },
+    { name: '竹乘 成也', archive: false },
+    { name: '安達 城灯', archive: false },
+    { name: '森田 悠翔', archive: false },
+    { name: '矢野 英一', archive: false },
+    { name: '誉田 和樹', archive: false },
+    { name: '数 瑛斗', archive: false }
   ].freeze
 
   # デモ用タスクデータ（seed.js から複製）

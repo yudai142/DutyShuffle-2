@@ -13,7 +13,7 @@ import {
   XMarkIcon,
 } from '@heroicons/react/24/outline';
 import { AssignMemberModal } from '../AssignMemberModal';
-import type { Member, Work, History } from '../../types';
+import type { Member, Work, History, OffWork } from '../../types';
 
 interface Notification {
   message: string;
@@ -31,8 +31,10 @@ export default function Dashboard({ worksheetId, _isDemoUser = false }: Props): 
   const [works, setWorks] = useState<Work[]>([]);
   const [members, setMembers] = useState<Member[]>([]);
   const [histories, setHistories] = useState<History[]>([]);
+  const [offWorks, setOffWorks] = useState<OffWork[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [loading, setLoading] = useState<boolean>(true);
+  const [error, setError] = useState<boolean>(false);
   const [shuffling, setShuffling] = useState<number | 'all' | null>(null);
   const [activeStatsTab, setActiveStatsTab] = useState<StatsTab>('works');
   const [showCalendar, setShowCalendar] = useState<boolean>(false);
@@ -51,11 +53,20 @@ export default function Dashboard({ worksheetId, _isDemoUser = false }: Props): 
 
   const fetchData = useCallback(async (): Promise<void> => {
     try {
+      // worksheetId がない場合はスキップ
+      if (!worksheetId) {
+        setLoading(false);
+        return;
+      }
+
+      setError(false);
+
       const year = selectedDate.getFullYear();
       const month = selectedDate.getMonth() + 1;
       const day = selectedDate.getDate();
+      const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
-      const [worksRes, membersRes, historiesRes] = await Promise.all([
+      const results = await Promise.allSettled([
         axios.get<Work[]>('/api/v1/works', {
           params: { worksheet_id: worksheetId },
         }),
@@ -65,16 +76,32 @@ export default function Dashboard({ worksheetId, _isDemoUser = false }: Props): 
         axios.get<History[]>('/api/v1/histories', {
           params: { year, month, day, worksheet_id: worksheetId },
         }),
+        axios.get<OffWork[]>('/api/v1/off_works', {
+          params: { date: dateStr, worksheet_id: worksheetId },
+        }),
       ]);
-      setWorks(worksRes.data.sort((a, b) => a.id - b.id));
-      setMembers(membersRes.data);
-      setHistories(historiesRes.data);
-    } catch {
-      // Error fetching data
+
+      const worksRes = results[0].status === 'fulfilled' ? results[0].value.data : [];
+      const membersRes = results[1].status === 'fulfilled' ? results[1].value.data : [];
+      const historiesRes = results[2].status === 'fulfilled' ? results[2].value.data : [];
+      const offWorksRes = results[3].status === 'fulfilled' ? results[3].value.data : [];
+
+      // エラーが発生したかどうかを確認
+      const hasError = results.some((result) => result.status === 'rejected');
+      setError(hasError);
+
+      setWorks(worksRes.sort((a, b) => a.id - b.id));
+      setMembers(membersRes);
+      setHistories(historiesRes);
+      setOffWorks(offWorksRes);
+    } catch (error) {
+      console.error('Error fetching data:', error);
+      setError(true);
+      showNotification('データの読み込みに失敗しました', 'error');
     } finally {
       setLoading(false);
     }
-  }, [selectedDate, worksheetId]);
+  }, [selectedDate, worksheetId, showNotification]);
 
   useEffect(() => {
     const handleScroll = () => {
@@ -103,19 +130,21 @@ export default function Dashboard({ worksheetId, _isDemoUser = false }: Props): 
       return;
     }
 
-    // 除外状態をチェック
-    const work = works.find((w: Work) => w.id === workId);
-    if (work && !work.is_above) {
-      showNotification('このタスクはシャッフル対象から除外されています', 'error');
+    // その日の OffWorks から除外状態をチェック
+    const year = selectedDate.getFullYear();
+    const month = selectedDate.getMonth() + 1;
+    const day = selectedDate.getDate();
+    const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+    const isExcludedToday = offWorks.some(
+      (ow: OffWork) => ow.work_id === workId && ow.date === dateStr
+    );
+    if (isExcludedToday) {
+      showNotification('このタスクは本日シャッフル対象から除外されています', 'error');
       return;
     }
 
     setShuffling(workId);
     try {
-      const year = selectedDate.getFullYear();
-      const month = selectedDate.getMonth() + 1;
-      const day = selectedDate.getDate();
-
       const response = await axios.post<{ member: Member }>('/api/v1/works/shuffle', {
         work_id: workId,
         participant_member_ids: allMembersWithRecords,
@@ -257,10 +286,14 @@ export default function Dashboard({ worksheetId, _isDemoUser = false }: Props): 
       const day = selectedDate.getDate();
 
       const [worksRes, membersRes, historiesRes] = await Promise.all([
-        axios.get<Work[]>('/api/v1/works'),
-        axios.get<Member[]>('/api/v1/members'),
+        axios.get<Work[]>('/api/v1/works', {
+          params: { worksheet_id: worksheetId },
+        }),
+        axios.get<Member[]>('/api/v1/members', {
+          params: { worksheet_id: worksheetId },
+        }),
         axios.get<History[]>('/api/v1/histories', {
-          params: { year, month, day },
+          params: { year, month, day, worksheet_id: worksheetId },
         }),
       ]);
       setWorks(worksRes.data.sort((a, b) => a.id - b.id));
@@ -287,32 +320,39 @@ export default function Dashboard({ worksheetId, _isDemoUser = false }: Props): 
 
   const handleToggleWorkExclusion = async (workId: number): Promise<void> => {
     try {
-      // 現在の Work オブジェクトを取得
-      const work = works.find((w: Work) => w.id === workId);
-      if (!work) return;
+      const year = selectedDate.getFullYear();
+      const month = selectedDate.getMonth() + 1;
+      const day = selectedDate.getDate();
+      const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
 
-      // is_above を反転
-      // チェック入れる（除外） = is_above を false に
-      // チェック外す（対象に戻す） = is_above を true に
-      const newIsAbove = !work.is_above;
+      // その日の OffWork レコードを検索
+      const existingOffWork = offWorks.find(
+        (ow: OffWork) => ow.work_id === workId && ow.date === dateStr
+      );
 
-      // API で Work を更新
-      await axios.patch(`/api/v1/works/${workId}`, {
-        work: {
-          is_above: newIsAbove,
-        },
-      });
+      if (existingOffWork) {
+        // 既に除外されている場合は削除（対象に戻す）
+        await axios.delete(`/api/v1/off_works/${existingOffWork.id}`);
+      } else {
+        // 除外されていない場合は作成
+        await axios.post('/api/v1/off_works', {
+          off_work: {
+            work_id: workId,
+            date: dateStr,
+            worksheet_id: worksheetId,
+          },
+        });
+      }
 
       // データを再取得
-      const worksRes = await axios.get<Work[]>('/api/v1/works');
-      setWorks(worksRes.data.sort((a, b) => a.id - b.id));
-      showNotification('タスクの設定を更新しました', 'success');
+      await fetchData();
+      showNotification('タスク除外設定を更新しました', 'success');
     } catch (error) {
       const axiosError = error as { response?: { data?: { error?: string; errors?: string[] } } };
       const msg =
         axiosError.response?.data?.errors?.join(', ') ||
         axiosError.response?.data?.error ||
-        'タスクの更新に失敗しました';
+        'タスク除外設定の更新に失敗しました';
       showNotification(msg, 'error');
       console.error('handleToggleWorkExclusion error:', error);
     }
@@ -349,10 +389,14 @@ export default function Dashboard({ worksheetId, _isDemoUser = false }: Props): 
       const day = selectedDate.getDate();
 
       const [worksRes, membersRes, historiesRes] = await Promise.all([
-        axios.get<Work[]>('/api/v1/works'),
-        axios.get<Member[]>('/api/v1/members'),
+        axios.get<Work[]>('/api/v1/works', {
+          params: { worksheet_id: worksheetId },
+        }),
+        axios.get<Member[]>('/api/v1/members', {
+          params: { worksheet_id: worksheetId },
+        }),
         axios.get<History[]>('/api/v1/histories', {
-          params: { year, month, day },
+          params: { year, month, day, worksheet_id: worksheetId },
         }),
       ]);
       setWorks(worksRes.data.sort((a, b) => a.id - b.id));
@@ -389,15 +433,20 @@ export default function Dashboard({ worksheetId, _isDemoUser = false }: Props): 
       const day = selectedDate.getDate();
 
       const [worksRes, membersRes, historiesRes] = await Promise.all([
-        axios.get<Work[]>('/api/v1/works'),
-        axios.get<Member[]>('/api/v1/members'),
+        axios.get<Work[]>('/api/v1/works', {
+          params: { worksheet_id: worksheetId },
+        }),
+        axios.get<Member[]>('/api/v1/members', {
+          params: { worksheet_id: worksheetId },
+        }),
         axios.get<History[]>('/api/v1/histories', {
-          params: { year, month, day },
+          params: { year, month, day, worksheet_id: worksheetId },
         }),
       ]);
       setWorks(worksRes.data.sort((a, b) => a.id - b.id));
       setMembers(membersRes.data);
       setHistories(historiesRes.data);
+      showNotification('全て解除しました', 'success');
     } catch (error) {
       const axiosError = error as { response?: { data?: { error?: string; errors?: string[] } } };
       const msg =
@@ -447,11 +496,67 @@ export default function Dashboard({ worksheetId, _isDemoUser = false }: Props): 
     return <div className="text-center py-12 text-gray-600">読み込み中...</div>;
   }
 
+  if (!worksheetId) {
+    return (
+      <div className="text-center py-12 text-gray-600">
+        <p>ワークシートを選択してダッシュボードを開始してください</p>
+      </div>
+    );
+  }
+
+  // API エラーが発生した場合のチェック
+  if (error) {
+    return (
+      <div className="text-center py-12 text-gray-600">
+        <p>データの読み込みに失敗しました</p>
+        <p className="text-sm mt-2">ページをリロードしてください</p>
+      </div>
+    );
+  }
+
+  // データが空の場合（新規ユーザー向けウェルカム画面）
+  const isEmpty = works.length === 0 && members.length === 0;
+  if (isEmpty) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-indigo-50 px-4">
+        <div className="max-w-md text-center">
+          <div className="mb-6 flex justify-center">
+            <SparklesIcon className="h-16 w-16 text-indigo-600" />
+          </div>
+          <h2 className="mb-4 text-2xl font-bold text-gray-800">ようこそ！</h2>
+          <p className="mb-6 text-gray-600">
+            シフト管理を始めるには、まずメンバーとタスクを追加してください。
+          </p>
+          <div className="space-y-3">
+            <a
+              href="/members"
+              className="block rounded-lg bg-indigo-600 px-6 py-3 font-semibold text-white transition-colors hover:bg-indigo-700"
+            >
+              <UserGroupIcon className="mb-1 inline-block h-5 w-5" /> メンバーを追加
+            </a>
+            <a
+              href="/works"
+              className="block rounded-lg border-2 border-indigo-600 px-6 py-3 font-semibold text-indigo-600 transition-colors hover:bg-indigo-50"
+            >
+              <ClipboardDocumentListIcon className="mb-1 inline-block h-5 w-5" /> タスクを追加
+            </a>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   const showParticipantSection = activeStatsTab === 'members';
   const showWorksSection = activeStatsTab === 'assigned';
 
   // 統計データ計算
-  const validWorksCount = works.filter((w: Work) => w.is_above).length;
+  const year = selectedDate.getFullYear();
+  const month = selectedDate.getMonth() + 1;
+  const day = selectedDate.getDate();
+  const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+  const validWorksCount = works.filter(
+    (w: Work) => !offWorks.some((ow: OffWork) => ow.work_id === w.id && ow.date === dateStr)
+  ).length;
 
   // 未割り当てメンバーを計算
   // work_id が null = 参加しているが未割り当て
@@ -548,8 +653,19 @@ export default function Dashboard({ worksheetId, _isDemoUser = false }: Props): 
                         setShowCalendar(false);
                       }
                     }}
-                    locale="ja-JP"
+                    locale="en-US"
+                    showNeighboringMonth={true}
+                    showFixedNumberOfWeeks={false}
                     className="react-calendar-custom"
+                    formatMonthYear={(locale, date) => {
+                      return `${date.getFullYear()}年 ${date.getMonth() + 1}月`;
+                    }}
+                    formatMonth={(locale, date) => {
+                      return `${date.getMonth() + 1}月`;
+                    }}
+                    formatYear={(locale, date) => {
+                      return `${date.getFullYear()}年`;
+                    }}
                   />
                 </div>
               </>
@@ -810,7 +926,13 @@ export default function Dashboard({ worksheetId, _isDemoUser = false }: Props): 
           ) : (
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
               {works.map((work: Work) => {
-                const isExcluded = !work.is_above;
+                const year = selectedDate.getFullYear();
+                const month = selectedDate.getMonth() + 1;
+                const day = selectedDate.getDate();
+                const dateStr = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+                const isExcluded = offWorks.some(
+                  (ow: OffWork) => ow.work_id === work.id && ow.date === dateStr
+                );
                 return (
                   <label
                     key={work.id}
@@ -978,6 +1100,216 @@ export default function Dashboard({ worksheetId, _isDemoUser = false }: Props): 
           )}
         </div>
       )}
+      <style>{`
+        /* react-calendar カレンダーのカスタムスタイル */
+        .react-calendar-custom {
+          width: 100%;
+          font-family: inherit;
+        }
+
+        /* 月ビューのメイン */
+        .react-calendar-custom .react-calendar__month-view {
+          display: grid;
+          grid-template-columns: 1fr;
+          gap: 1px;
+        }
+
+        /* 週ごとのコンテナ */
+        .react-calendar-custom .react-calendar__month-view__days__week {
+          display: grid;
+          grid-template-columns: repeat(7, 1fr);
+          gap: 1px;
+        }
+
+        /* 曜日ヘッダーを flexbox で日曜日から始める */
+        .react-calendar-custom .react-calendar__month-view__weekdays {
+          display: flex;
+          gap: 1px;
+        }
+
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday {
+          flex: 1;
+          border: 1px solid #e5e7eb;
+          padding: 8px 4px;
+          font-weight: 600;
+          text-align: center;
+          font-size: 12px;
+          background-color: #f9fafb;
+          color: #1f2937;
+        }
+
+        /* 曜日の順序を変更（日曜日を最初に） */
+        /* en-US locale では nth-child(1)=Sunday, nth-child(7)=Saturday */
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(1) {
+          order: 1;
+          color: #dc2626;
+          border-color: #fca5a5;
+          background-color: #fef2f2;
+        }
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(2) {
+          order: 2;
+        }
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(3) {
+          order: 3;
+        }
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(4) {
+          order: 4;
+        }
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(5) {
+          order: 5;
+        }
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(6) {
+          order: 6;
+        }
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(7) {
+          order: 7;
+          color: #2563eb;
+          border-color: #93c5fd;
+          background-color: #eff6ff;
+        }
+
+        /* 曜日テキストを非表示にして日本語に置き換え */
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday {
+          font-size: 0;
+        }
+
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday::before {
+          font-size: 12px;
+        }
+
+        /* en-US locale に基づく曜日マッピング */
+        /* nth-child(1)=日曜日 (Sunday) */
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(1)::before {
+          content: '日';
+        }
+        /* nth-child(2)=月曜日 (Monday) */
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(2)::before {
+          content: '月';
+        }
+        /* nth-child(3)=火曜日 (Tuesday) */
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(3)::before {
+          content: '火';
+        }
+        /* nth-child(4)=水曜日 (Wednesday) */
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(4)::before {
+          content: '水';
+        }
+        /* nth-child(5)=木曜日 (Thursday) */
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(5)::before {
+          content: '木';
+        }
+        /* nth-child(6)=金曜日 (Friday) */
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(6)::before {
+          content: '金';
+        }
+        /* nth-child(7)=土曜日 (Saturday) */
+        .react-calendar-custom .react-calendar__month-view__weekdays__weekday:nth-child(7)::before {
+          content: '土';
+        }
+
+        /* 日付セルのグリッドレイアウト（7列固定） */
+        .react-calendar-custom .react-calendar__month-view__days {
+          display: grid !important;
+          grid-template-columns: repeat(7, 1fr) !important;
+          gap: 1px !important;
+          width: 100%;
+          grid-auto-flow: row;
+        }
+
+        /* 週ごとのコンテナは非表示にして、tile を直接グリッドに配置 */
+        .react-calendar-custom .react-calendar__month-view__days > * {
+          display: contents;
+        }
+
+        /* 日付タイルのスタイル */
+        .react-calendar-custom .react-calendar__tile {
+          border: 1px solid #e5e7eb;
+          padding: 8px;
+          aspect-ratio: 1;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 14px;
+          background-color: #ffffff;
+          cursor: pointer;
+          transition: background-color 0.2s, color 0.2s;
+        }
+
+        .react-calendar-custom .react-calendar__tile:hover {
+          background-color: #e0e7ff;
+        }
+
+        /* 隣接月の日付（淡い表示） */
+        .react-calendar-custom .react-calendar__tile--neighboringMonth {
+          color: #d1d5db;
+          background-color: #f9fafb;
+        }
+
+        /* 日曜日の日付（先頭から7個ごと）の色分け */
+        /* react-calendar が月曜日から始まる場合：6, 13, 20, ... → 7n+1に変換 */
+        /* react-calendar が日曜日から始まる場合は：0, 7, 14, ... → 7n */
+        /* showNeighboringMonth=true の場合、最初の週は前月の日付も含まれるため調整が必要 */
+        .react-calendar-custom .react-calendar__month-view__days .react-calendar__tile:nth-child(7n+1) {
+          color: #dc2626;
+        }
+        .react-calendar-custom .react-calendar__month-view__days .react-calendar__tile--neighboringMonth:nth-child(7n+1) {
+          color: #fca5a5;
+        }
+
+        /* 土曜日の日付（7の倍数）の色分け */
+        .react-calendar-custom .react-calendar__month-view__days .react-calendar__tile:nth-child(7n) {
+          color: #2563eb;
+        }
+        .react-calendar-custom .react-calendar__month-view__days .react-calendar__tile--neighboringMonth:nth-child(7n) {
+          color: #93c5fd;
+        }
+
+        /* アクティブな日付のスタイル */
+        .react-calendar-custom .react-calendar__tile--active {
+          background-color: #e0e7ff;
+          border-color: #6366f1;
+          color: #1f2937;
+        }
+
+        /* 年・月選択ビューをリスト表示に変更 */
+        .react-calendar-custom .react-calendar__year-view,
+        .react-calendar-custom .react-calendar__decade-view {
+          display: flex;
+          flex-direction: column;
+          gap: 0;
+        }
+
+        .react-calendar-custom .react-calendar__year-view__months,
+        .react-calendar-custom .react-calendar__decade-view__years {
+          display: flex;
+          flex-direction: column;
+          gap: 0;
+        }
+
+        .react-calendar-custom .react-calendar__year-view__months__month,
+        .react-calendar-custom .react-calendar__decade-view__years__year {
+          padding: 12px;
+          border: 1px solid #e5e7eb;
+          text-align: center;
+          font-size: 14px;
+          background-color: #ffffff;
+          cursor: pointer;
+          transition: background-color 0.2s, color 0.2s;
+        }
+
+        .react-calendar-custom .react-calendar__year-view__months__month:hover,
+        .react-calendar-custom .react-calendar__decade-view__years__year:hover {
+          background-color: #e0e7ff;
+          color: #4f46e5;
+        }
+
+        .react-calendar-custom .react-calendar__year-view__months__month--active,
+        .react-calendar-custom .react-calendar__decade-view__years__year--active {
+          background-color: #4f46e5;
+          color: #ffffff;
+          border-color: #4f46e5;
+        }
+      `}</style>
     </div>
   );
 }
